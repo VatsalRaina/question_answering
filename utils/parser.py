@@ -25,5 +25,8 @@ def get_args():
     # Regularisation
     parser.add_argument('--dropout', type=float, default=0.1, help='Specify the dropout rate')
 
+    # Data paths
     parser.add_argument('--save_path', type=str, help='Load path to which trained model will be saved')
+    parser.add_argument('--model_path', type=str, help='Load path to trained model')
+    parser.add_argument('--predictions_save_path', type=str, help='Where to save predicted values')
     return parser

@@ -48,6 +48,7 @@ def main(args):
 
     # Set model and load tokenizer
     # TODO: Move this to a different location to make this script model agnositc
+    print("===> Loading model")
     electra_large = "google/electra-large-discriminator"
     tokenizer = ElectraTokenizer.from_pretrained(electra_large, do_lower_case=True)
 
@@ -58,12 +59,20 @@ def main(args):
 
     # Load SQuAD v1 dataset
     # TODO: Move this to a different location to make this script dataset agnositc
-    input_ids, start_positions_true, end_positions_true, token_type_ids, attention_masks = \
-        load_squad_v1(
+    print("===> Loading dataset")
+    all_data = load_squad_v1(
             args = args,
             tokenizer = tokenizer,
             device = device,
+            split = 'train'
     )
+    print("===> Finished loading dataset")
+
+    input_ids = all_data['input_ids']
+    start_positions_true = all_data['start_positions_true']
+    end_positions_true = all_data['end_positions_true']
+    token_type_ids = all_data['token_type_ids']
+    attention_masks = all_data['attention_masks']
 
     # Create the DataLoader for training set.
     train_data = TensorDataset(input_ids, start_positions_true, end_positions_true, token_type_ids, attention_masks)
@@ -151,10 +160,11 @@ def main(args):
         avg_train_loss = total_loss / len(train_dataloader)
 
         print("")
-        print("  Average training loss: {0:.2f}".format(avg_train_loss))
-        print("  Training epoch took: {:}".format(format_time(time.time() - t0)))
+        print("===> Average training loss: {0:.2f}".format(avg_train_loss))
+        print("===> Training epoch took: {:}".format(format_time(time.time() - t0)))
 
     # Save the model to a file
+    # TODO: Make script model saving agnostic
     file_path = args.save_path + 'electra_qa_seed' + str(args.seed) + '.pt'
     torch.save(model, file_path)
 
