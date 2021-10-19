@@ -28,7 +28,7 @@ def load_squad_v1(args, tokenizer, device, split = 'train'):
 
     # For training get labels
     if use_train:
-        all_data['start_positions_true'] = [],
+        all_data['start_positions_true'] = []
         all_data['end_positions_true'] = []
 
     # Process every example manually
