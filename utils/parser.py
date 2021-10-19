@@ -22,7 +22,7 @@ def get_args():
     model_names = get_model_names()
 
     # Model architecture
-    parser.add_argument('--arch',
+    parser.add_argument('--arch', '-a',
                         type=str, default='qa_electra_large', choices = model_names,
                         help='Specify the type of QA model. Possible choices: ' + ' | '.join(model_names)
     )
