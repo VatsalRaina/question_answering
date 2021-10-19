@@ -1,3 +1,4 @@
+import models as models
 import argparse
 
 __all__ = [
@@ -5,8 +6,26 @@ __all__ = [
 ]
 
 
+def get_model_names():
+    # Get all possible model names as defined in the models directory
+    # The chosen architecture must be in this list
+    model_names = sorted(name for name in models.__dict__
+                         if name.islower() and not name.startswith("__")
+                         and callable(models.__dict__[name]))
+    return model_names
+
+
 def get_args():
-    parser = argparse.ArgumentParser(description='QnA Training/Evaluation')
+    parser = argparse.ArgumentParser(description='QA Training/Evaluation')
+
+    # Get all possible model names
+    model_names = get_model_names()
+
+    # Model architecture
+    parser.add_argument('--arch',
+                        type=str, default='qa_electra_large', choices = model_names,
+                        help='Specify the type of QA model. Possible choices: ' + ' | '.join(model_names)
+    )
 
     # Training parameters
     parser.add_argument('--batch_size', type=int, default=32, help='Specify the training batch size')

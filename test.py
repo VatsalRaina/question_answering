@@ -11,9 +11,8 @@ import numpy as np
 
 import torch
 from torch.utils.data import TensorDataset, DataLoader
-from transformers import ElectraTokenizer
 
-from utils import get_args
+from utils import get_args, load_model
 from utils import get_default_device, format_time
 from qadatasets import load_squad_v1
 
@@ -36,8 +35,7 @@ def main(args):
     device = get_default_device()
 
     # Load tokenizer
-    electra_large = "google/electra-large-discriminator"
-    tokenizer = ElectraTokenizer.from_pretrained(electra_large, do_lower_case=True)
+    tokenizer = load_model(args, tokenizer_only=True)
 
     # Load trained model
     model = torch.load(args.model_path, map_location = device)

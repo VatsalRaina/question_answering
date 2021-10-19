@@ -20,7 +20,7 @@ from transformers import ElectraTokenizer
 from transformers import ElectraForQuestionAnswering, AdamW, ElectraConfig
 from transformers import get_linear_schedule_with_warmup
 
-from utils import get_args
+from utils import get_args, load_model
 from utils import format_time, get_default_device, set_seed
 from qadatasets import load_squad_v1
 
@@ -47,18 +47,15 @@ def main(args):
     print("===> Using device {}".format(device))
 
     # Set model and load tokenizer
-    # TODO: Move this to a different location to make this script model agnositc
     print("===> Loading model")
-    electra_large = "google/electra-large-discriminator"
-    tokenizer = ElectraTokenizer.from_pretrained(electra_large, do_lower_case=True)
-
-    # Load pre-trained model, move to device and set optimizer
-    model = ElectraForQuestionAnswering.from_pretrained(electra_large)
+    model, tokenizer = load_model(args)
     model.to(device)
+
+    # Set model optimizer
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
 
     # Load SQuAD v1 dataset
-    # TODO: Move this to a different location to make this script dataset agnositc
+    # TODO: Move this to a different location to make this script dataset agnostic
     print("===> Loading dataset")
     all_data = load_squad_v1(
             args = args,
@@ -68,6 +65,7 @@ def main(args):
     )
     print("===> Finished loading dataset")
 
+    # TODO: Make data processing script model agnostic
     input_ids = all_data['input_ids']
     start_positions_true = all_data['start_positions_true']
     end_positions_true = all_data['end_positions_true']
@@ -165,7 +163,7 @@ def main(args):
 
     # Save the model to a file
     # TODO: Make script model saving agnostic
-    file_path = args.save_path + 'electra_qa_seed' + str(args.seed) + '.pt'
+    file_path = args.save_path + args.arch + '_seed' + str(args.seed) + '.pt'
     torch.save(model, file_path)
 
 
