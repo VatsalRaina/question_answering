@@ -16,8 +16,7 @@ from torch.utils.data import (
     SequentialSampler
 )
 
-from transformers import ElectraTokenizer
-from transformers import ElectraForQuestionAnswering, AdamW, ElectraConfig
+from transformers import AdamW
 from transformers import get_linear_schedule_with_warmup
 
 from utils import get_args, load_model
@@ -83,7 +82,7 @@ def main(args):
     # Create the learning rate scheduler.
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
-        num_warmup_steps = args.warmup_steps,
+        num_warmup_steps = int(args.warmup_fraction * total_steps),
         num_training_steps = total_steps,
     )
 
@@ -101,6 +100,7 @@ def main(args):
 
         # Set model into training mode
         model.train()
+        model.zero_grad()
 
         # For each batch of training data...
         for step, batch in enumerate(train_dataloader):
@@ -121,8 +121,6 @@ def main(args):
             b_tok_typ_ids = batch[3].to(device)
             b_att_msks = batch[4].to(device)
 
-            model.zero_grad()
-
             # This will automatically get loss and predictions
             # TODO: Might need to be changed for flexible choice in loss function
             outputs = model(
@@ -136,20 +134,29 @@ def main(args):
             # First part of output is the loss
             loss = outputs[0]
 
+            # Normalise the loss
+            loss /= args.accumulate_gradient_steps
+
             # Track the epoch loss
             total_loss += loss.item()
 
             # Gradient back prop
             loss.backward()
 
-            # Clip the norm of the gradients to 1.0.
-            # This is to help prevent the "exploding gradients" problem.
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            # Gradient accumulation update
+            if (step + 1) % args.accumulate_gradient_steps == 0:
 
-            # Update parameters and take a step using the computed gradient.
-            # The optimizer dictates the "update rule"--how the parameters are
-            # modified based on their gradients, the learning rate, etc.
-            optimizer.step()
+                # Clip the norm of the gradients to 1.0.
+                # This is to help prevent the "exploding gradients" problem.
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+                # Update parameters and take a step using the computed gradient.
+                # The optimizer dictates the "update rule"--how the parameters are
+                # modified based on their gradients, the learning rate, etc.
+                optimizer.step()
+
+                # Now zero gradients
+                model.zero_grad()
 
             # Update the learning rate.
             scheduler.step()

@@ -29,6 +29,7 @@ def get_args():
 
     # Training parameters
     parser.add_argument('--batch_size', type=int, default=32, help='Specify the training batch size')
+    parser.add_argument('--accumulate_gradient_steps', type=int, default=1, help='Number of batch computations before optimizer step')
     parser.add_argument('--epochs', type=int, default=1, help='Specify the number of epochs to train for')
     parser.add_argument('--seed', type=int, default=1, help='Specify the global random seed')
 
@@ -39,7 +40,7 @@ def get_args():
     parser.add_argument('--learning_rate', type=float, default=3e-5, help='Specify the initial learning rate')
     parser.add_argument('--lr_decay', type=float, default=0.85, help='Specify the learning rate decay rate')
     parser.add_argument('--adam_epsilon', type=float, default=1e-8, help='Specify the AdamW loss epsilon')
-    parser.add_argument('--warmup_steps', type=int, default=306, help='Number of warmup steps in linear schedule')
+    parser.add_argument('--warmup_fraction', type=float, default=0.1, help='Fraction of warmup in linear schedule')
 
     # Regularisation
     parser.add_argument('--dropout', type=float, default=0.1, help='Specify the dropout rate')
