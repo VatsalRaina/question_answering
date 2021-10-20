@@ -56,7 +56,7 @@ def main(args):
     print("===> Using device {}".format(device))
 
     # Set model and load tokenizer
-    print("===> Loading model")
+    print("===> Loading model {}".format(args.arch))
     model, tokenizer = load_model(args)
     model.to(device)
 
