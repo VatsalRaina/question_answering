@@ -27,6 +27,16 @@ from qadatasets import load_squad_v1
 args = get_args().parse_args()
 
 
+def save_model(args, model, epoch, final = False):
+    # TODO: Make script model saving agnostic
+
+    # Save the model to a file
+    file_path = args.save_path + args.arch + '_seed' + str(args.seed)
+
+    if final: torch.save(model, file_path + '.pt')
+    else: torch.save(model, file_path + '_epoch' + str(epoch) + '.pt')
+
+
 def main(args):
 
     # Store command for future reference
@@ -87,16 +97,16 @@ def main(args):
     )
 
     # Training loop
-    for epoch in range(args.epochs):
+    for epoch in range(1, args.epochs + 1):
         
         # Perform one full pass over the training set.
-        print('\n======== Epoch {:} / {:} ========'.format(epoch + 1, args.epochs))
+        print('\n======== Epoch {:} / {:} ========'.format(epoch, args.epochs))
 
         # Measure how long the training epoch takes.
         t0 = time.time()
 
         # Reset the total loss for this epoch.
-        total_loss = 0
+        total_loss, update_loss = 0, 0
 
         # Set model into training mode
         model.train()
@@ -111,8 +121,15 @@ def main(args):
                 # Calculate elapsed time in minutes.
                 elapsed = format_time(time.time() - t0)
 
-                # Report progress.
-                print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
+                # Normalise
+                update_loss /= 40
+
+                # Report progress
+                msg = '  Batch {:>5,}  of  {:>5,}.    Loss: {:.4f}    Elapsed: {:}.'
+                print(msg.format(step, len(train_dataloader), update_loss, elapsed))
+
+                # Reset
+                update_loss = 0
 
             # Get batch of inputs, specific to transformers
             b_input_ids = batch[0].to(device)
@@ -134,11 +151,12 @@ def main(args):
             # First part of output is the loss
             loss = outputs[0]
 
-            # Normalise the loss
-            loss /= args.accumulate_gradient_steps
-
             # Track the epoch loss
             total_loss += loss.item()
+            update_loss += loss.item()
+
+            # Normalise the loss
+            loss /= args.accumulate_gradient_steps
 
             # Gradient back prop
             loss.backward()
@@ -168,10 +186,11 @@ def main(args):
         print("===> Average training loss: {0:.2f}".format(avg_train_loss))
         print("===> Training epoch took: {:}".format(format_time(time.time() - t0)))
 
-    # Save the model to a file
-    # TODO: Make script model saving agnostic
-    file_path = args.save_path + args.arch + '_seed' + str(args.seed) + '.pt'
-    torch.save(model, file_path)
+        # Save epoch checkpoint
+        save_model(args, model, epoch, final = False)
+
+    # Save final checkpoint
+    save_model(args, model, epoch, final = True)
 
 
 if __name__ == '__main__':
