@@ -1,0 +1,162 @@
+#! /usr/bin/env python
+
+"""
+Prepare predictions for official SQuAD evaluation
+"""
+#TODO There is a fair amount of code repetition here which can probably be refactored for readability
+
+import os
+import sys
+
+from utils import get_args_prep
+
+from datasets import load_dataset
+from transformers import ElectraTokenizer, ElectraConfig
+import json
+import collections
+import numpy as np
+
+# Get all arguments for postprocessing
+args = get_args_prep().parse_args()
+
+def strip_accents(text):
+    text = text.replace("ö", "o").replace("ü", "u").replace("á", "a").replace("é", "e").replace("í", "i")
+    text = text.replace("ó", "o").replace("ú", "u").replace("ñ", "n").replace("ç", "c").replace("â", "a")
+    text = text.replace("ê", "e").replace("î", "i").replace("ô", "o").replace("û", "u").replace("à", "a")
+    text = text.replace("è", "e").replace("ì", "i").replace("ò", "o").replace("ù", "u").replace("ë", "e")
+    text = text.replace("ï", "i").replace("ä", "a").replace("ć", "c").replace("ń", "n").replace("ś", "s")
+    text = text.replace("ź", "z").replace("ł", "l").replace("ż", "z").replace("ą", "a").replace("ę", "e")
+    text = text.replace("š", "s").replace("ř", "r").replace("ů", "u").replace("č", "c").replace("ě", "e")
+    text = text.replace("ž", "z").replace("ý", "y").replace("ā", "a").replace("ē", "e").replace("ī", "i")
+    text = text.replace("ō", "o").replace("ū", "u").replace("õ", "o").replace("\u1ea1", "a").replace("\u1eb1", "a")
+    text = text.replace("\u1ec7", "e").replace("å", "a")
+    return text
+
+def main(args):
+
+    # Store command for future reference
+    if not os.path.isdir('CMDs'):
+        os.mkdir('CMDs')
+
+    with open('CMDs/postprocess.cmd', 'a') as f:
+        f.write(' '.join(sys.argv) + '\n')
+        f.write('--------------------------------\n')
+
+
+    all_start_logits, all_end_logits = [], []
+    for i in range(args.ens_size + 1):
+        all_start_logits.append(np.load(args.load_dir+'seed'+str(i)+'/pred_start_logits.npy'))
+        all_end_logits.append(np.load(args.load_dir+'seed'+str(i)+'/pred_end_logits.npy'))
+
+    # Ensemble start and end logits
+    ens_start_logits = np.mean( np.asarray(all_start_logits) , axis=0 )
+    ens_end_logits = np.mean( np.asarray(all_end_logits) , axis=0 )
+
+    #TODO set threshold for some form of uncertainty measure to determine unanswerable examples
+    # thresh = ??
+
+    if args.squad_version == 1:
+        dev_data = load_dataset('squad', split='validation')
+    else:
+        dev_data = load_dataset('squad_v2', split='validation')
+    
+    tokenizer = ElectraTokenizer.from_pretrained('google/electra-large-discriminator', do_lower_case=True)
+
+    # Find predictions as word spans
+    span_predictions = {}
+
+    for i, ex in enumerate(dev_data):
+        #print(i)
+        start_logits = ens_start_logits[i, :]
+        end_logits = ens_end_logits[i, :]
+        question, passage, qid = ex["question"], ex["context"].replace("\n", ""), ex["id"]
+
+        combo = question + "[SEP]" + passage
+        input_ids = tokenizer.encode(combo)
+        #input_ids = input_ids[:512]
+
+        # sort our start and end logits from largest to smallest, keeping track of the index
+        start_idx_and_logit = sorted(enumerate(start_logits), key=lambda x: x[1], reverse=True)
+        end_idx_and_logit = sorted(enumerate(end_logits), key=lambda x: x[1], reverse=True)
+
+        # Select top 10 indexes
+        start_indexes = [idx for idx, logit in start_idx_and_logit[:10]]
+        end_indexes = [idx for idx, logit in end_idx_and_logit[:10]]
+
+        tokens = input_ids
+        # question tokens are defined as those between the CLS token (101, at position 0) and first SEP (102) token
+        question_indexes = [j+1 for j, token in enumerate(tokens[1:tokens.index(102)])]
+
+        # keep track of all preliminary predictions
+        PrelimPrediction = collections.namedtuple("PrelimPrediction", ["start_index", "end_index", "start_logit", "end_logit"])
+
+        prelim_preds = []
+        prelim_preds.append(
+                PrelimPrediction(
+                    start_index = 0,
+                    end_index = 0,
+                    start_logit = start_logits[0],
+                    end_logit = end_logits[0]
+                )
+            )
+        for start_index in start_indexes:
+            if start_index in question_indexes:
+                continue
+            # Ignore [CLS]
+            if start_index==0:
+                continue
+            for end_index in end_indexes:
+                # throw out invalid predictions
+                if end_index in question_indexes:
+                    continue
+                if end_index > len(input_ids):
+                    continue
+                if end_index < start_index:
+                    continue
+
+                # Reject if the answer span is too long
+                #if (end_index - start_index) > 10:
+                #    continue
+                prelim_preds.append(
+                    PrelimPrediction(
+                        start_index = start_index,
+                        end_index = end_index,
+                        start_logit = start_logits[start_index],
+                        end_logit = end_logits[end_index]
+                    )
+                )
+
+        # sort preliminary predictions by their score
+        prelim_preds = sorted(prelim_preds, key=lambda x: (x.start_logit + x.end_logit), reverse=True)
+        best = prelim_preds[0]
+        answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(input_ids[best.start_index:best.end_index+1]))
+
+        # The answer after detokenizing often doesn't even end up being an extract from the context
+        # due to spacing around various characters e.g. punctuation
+        # Hence, it is necessary to match the answer to an extract from the context
+        if answer!="":
+            noSpaceToWithSpace = []
+            for pos, char in enumerate(passage):
+                if char!=' ':
+                    noSpaceToWithSpace.append(pos)
+            passage_noSpace = strip_accents(passage.lower().replace(" ", ""))
+            answer_noSpace = strip_accents(answer.replace(" ", ""))
+            if answer_noSpace in passage_noSpace:
+                start_char_noSpace = passage_noSpace.find(answer_noSpace)
+                end_char_noSpace = start_char_noSpace + len(answer_noSpace) - 1
+                start_char = noSpaceToWithSpace[start_char_noSpace]
+                end_char = noSpaceToWithSpace[end_char_noSpace]
+                answer = passage[start_char:end_char+1]
+            else:
+                # Couldn't find the answer as an extract of the context
+                print(passage.lower())
+                print(answer)
+                print(' ')
+
+        span_predictions[qid] = answer
+
+    with open(args.save_dir+'predictions.json', 'w') as fp:
+        json.dump(span_predictions, fp)
+
+if __name__ == '__main__':
+    main(args)

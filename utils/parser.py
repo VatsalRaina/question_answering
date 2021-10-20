@@ -50,3 +50,14 @@ def get_args():
     parser.add_argument('--model_path', type=str, help='Load path to trained model')
     parser.add_argument('--predictions_save_path', type=str, help='Where to save predicted values')
     return parser
+
+def get_args_prep():
+    parser = argparse.ArgumentParser(description='QA postprocessing for SQuAD evaluation')
+
+    # Data paths
+    parser.add_argument('--save_dir', type=str, help='Load directory to which prepped file will be saved')
+    parser.add_argument('--load_dir', type=str, help='Load directory of saved start and end logits for all seeds')
+
+    # Other
+    parser.add_argument('--ens_size', type=str, default=5, help='Number of members in ensemble')
+    parser.add_argument('--squad_version', type=int, default=1, help='SQuAD version for which evaluation is to be performed')
