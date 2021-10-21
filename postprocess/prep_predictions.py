@@ -3,7 +3,8 @@
 """
 Prepare predictions for official SQuAD evaluation
 """
-#TODO There is a fair amount of code repetition here which can probably be refactored for readability
+# TODO There is a fair amount of code repetition here which can probably be refactored for readability
+# TODO: Split the code up in this file into smaller more readable functions and add more comments
 
 import os
 import sys
@@ -19,6 +20,7 @@ import numpy as np
 # Get all arguments for postprocessing
 args = get_args_prep().parse_args()
 
+
 def strip_accents(text):
     text = text.replace("ö", "o").replace("ü", "u").replace("á", "a").replace("é", "e").replace("í", "i")
     text = text.replace("ó", "o").replace("ú", "u").replace("ñ", "n").replace("ç", "c").replace("â", "a")
@@ -31,6 +33,7 @@ def strip_accents(text):
     text = text.replace("ō", "o").replace("ū", "u").replace("õ", "o").replace("\u1ea1", "a").replace("\u1eb1", "a")
     text = text.replace("\u1ec7", "e").replace("å", "a")
     return text
+
 
 def main(args):
 

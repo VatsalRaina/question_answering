@@ -51,13 +51,15 @@ def get_args():
     parser.add_argument('--predictions_save_path', type=str, help='Where to save predicted values')
     return parser
 
+
 def get_args_prep():
     parser = argparse.ArgumentParser(description='QA postprocessing for SQuAD evaluation')
 
     # Data paths
-    parser.add_argument('--save_dir', type=str, help='Load directory to which prepped file will be saved')
-    parser.add_argument('--load_dir', type=str, help='Load directory of saved start and end logits for all seeds')
+    parser.add_argument('--save_dir', type=str, help='Directory to which prepped file will be saved')
+    parser.add_argument('--load_dir', type=str, help='Directory of saved start and end logits for all seeds')
 
     # Other
     parser.add_argument('--ens_size', type=str, default=5, help='Number of members in ensemble')
+    # TODO: Maybe instead of "squad_version" we simply have dataset (validation) name to ensure flexibility
     parser.add_argument('--squad_version', type=int, default=1, help='SQuAD version for which evaluation is to be performed')

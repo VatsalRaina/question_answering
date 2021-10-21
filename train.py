@@ -19,7 +19,7 @@ from torch.utils.data import (
 from transformers import AdamW
 from transformers import get_linear_schedule_with_warmup
 
-from utils import get_args, load_model
+from utils import get_args, load_model, mkdir_p
 from utils import format_time, get_default_device, set_seed
 from qadatasets import load_squad_v1
 
@@ -28,13 +28,14 @@ args = get_args().parse_args()
 
 
 def save_model(args, model, epoch, final = False):
-    # TODO: Make script model saving agnostic
+
+    # Specify epoch in file name in case it is an intermediate checkpoint
+    file_name = args.arch + "_seed{}.pt".format(args.seed)
+    if not final: file_name = args.arch + "_seed{}_epoch{}.pt".format(args.seed, epoch)
 
     # Save the model to a file
-    file_path = args.save_path + args.arch + '_seed' + str(args.seed)
-
-    if final: torch.save(model, file_path + '.pt')
-    else: torch.save(model, file_path + '_epoch' + str(epoch) + '.pt')
+    file_path = os.path.join(args.save_path, file_name)
+    torch.save(model, file_path)
 
 
 def main(args):
@@ -46,6 +47,10 @@ def main(args):
     with open('CMDs/train.cmd', 'a') as f:
         f.write(' '.join(sys.argv) + '\n')
         f.write('--------------------------------\n')
+
+    # Model saving directory
+    if not os.path.isdir(args.save_path):
+        mkdir_p(args.save_path)
 
     # Set the seed value to make this reproducible.
     set_seed(args)

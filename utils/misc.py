@@ -1,12 +1,16 @@
-import torch
-import datetime
+import os
+import errno
 import random
+import datetime
+
+import torch
 import numpy as np
 
 __all__ = [
     'format_time',
     'get_default_device',
     '_find_sub_list',
+    'mkdir_p',
     'set_seed',
 ]
 
@@ -40,6 +44,19 @@ def _find_sub_list(sl, l):
 
     print("Didn't find match, return <no answer>")
     return -1, 0
+
+
+def mkdir_p(path):
+    """
+    Make dir if not exist.
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 
 def set_seed(args):
