@@ -131,7 +131,7 @@ def main(args):
 
                 # Report progress
                 msg = '  Batch {:>5,}  of  {:>5,}.    Loss: {:.5f}    LR: {:.8f}    Elapsed: {:}.'
-                print(msg.format(step, len(train_dataloader), update_loss, scheduler.get_last_lr(), elapsed))
+                print(msg.format(step, len(train_dataloader), update_loss, scheduler.get_last_lr()[0], elapsed))
 
                 # Reset
                 update_loss = 0
