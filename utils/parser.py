@@ -28,6 +28,7 @@ def get_args():
     )
 
     # Training parameters
+    parser.add_argument('--log_every', type=int, default=40, help='Print a logging statement every n batches')
     parser.add_argument('--batch_size', type=int, default=32, help='Specify the training batch size')
     parser.add_argument('--accumulate_gradient_steps', type=int, default=1, help='Number of batch computations before optimizer step')
     parser.add_argument('--epochs', type=int, default=1, help='Specify the number of epochs to train for')

@@ -120,18 +120,18 @@ def main(args):
         # For each batch of training data...
         for step, batch in enumerate(train_dataloader):
 
-            # Progress update every 40 batches.
-            if step % 40 == 0 and not step == 0:
+            # Progress update every specified number of batches.
+            if step % args.log_every == 0 and not step == 0:
 
                 # Calculate elapsed time in minutes.
                 elapsed = format_time(time.time() - t0)
 
                 # Normalise
-                update_loss /= 40
+                update_loss /= float(args.log_every)
 
                 # Report progress
-                msg = '  Batch {:>5,}  of  {:>5,}.    Loss: {:.4f}    Elapsed: {:}.'
-                print(msg.format(step, len(train_dataloader), update_loss, elapsed))
+                msg = '  Batch {:>5,}  of  {:>5,}.    Loss: {:.5f}    LR: {:.8f}    Elapsed: {:}.'
+                print(msg.format(step, len(train_dataloader), update_loss, scheduler.get_last_lr(), elapsed))
 
                 # Reset
                 update_loss = 0
