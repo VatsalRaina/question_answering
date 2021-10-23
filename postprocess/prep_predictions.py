@@ -10,6 +10,7 @@ import os
 import sys
 
 sys.path.append(sys.argv[0]+'/..')
+print(sys.path)
 
 from utils.parser import get_args_prep
 
