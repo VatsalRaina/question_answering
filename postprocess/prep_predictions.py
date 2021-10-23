@@ -9,7 +9,9 @@ Prepare predictions for official SQuAD evaluation
 import os
 import sys
 
-from utils import get_args_prep
+sys.path.append(os.path.abspath(os.path.join('..', 'utils')))
+
+from utils.parser import get_args_prep
 
 from datasets import load_dataset
 from transformers import ElectraTokenizer, ElectraConfig
