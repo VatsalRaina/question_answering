@@ -9,7 +9,9 @@ Prepare predictions for official SQuAD evaluation
 import os
 import sys
 
-sys.path.append(os.path.abspath('..'))
+print(sys.path)
+print(sys.argv[0])
+sys.path.append(os.path.abspath(os.path.join('..', 'utils')))
 
 from utils.parser import get_args_prep
 
