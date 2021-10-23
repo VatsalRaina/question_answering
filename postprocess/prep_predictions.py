@@ -51,7 +51,7 @@ def main(args):
 
 
     all_start_logits, all_end_logits = [], []
-    for i in range(args.ens_size + 1):
+    for i in range(1, args.ens_size + 1):
         all_start_logits.append(np.load(args.load_dir+'seed'+str(i)+'/pred_start_logits.npy'))
         all_end_logits.append(np.load(args.load_dir+'seed'+str(i)+'/pred_end_logits.npy'))
 
