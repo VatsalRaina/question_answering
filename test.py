@@ -70,11 +70,13 @@ def main(args):
             input_ids=b_input_ids.to(device),
             attention_mask=b_att_msks.to(device),
             token_type_ids=b_tok_typ_ids.to(device),
-            return_dict=True
+            # return_dict=True
         )
 
-        b_start_logits = outputs.start_logits
-        b_end_logits   = outputs.end_logits
+        # b_start_logits = outputs.start_logits
+        # b_end_logits   = outputs.end_logits
+        b_start_logits = outputs[0]
+        b_end_logits = outputs[1]
 
         # Store all predictions
         pred_start_logits += b_start_logits.detach().cpu().numpy().tolist()
