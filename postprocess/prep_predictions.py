@@ -9,7 +9,8 @@ Prepare predictions for official SQuAD evaluation
 import os
 import sys
 
-sys.path.append(sys.argv[0]+'/..')
+dirname, filename = os.path.split(os.path.abspath(__file__))
+sys.path.append(dirname+'/..')
 print(sys.path)
 
 from utils.parser import get_args_prep
