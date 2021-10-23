@@ -22,7 +22,7 @@ import collections
 import numpy as np
 
 # Get all arguments for postprocessing
-args = get_args_prep().parse_args()
+args = get_args_prep()
 
 
 def strip_accents(text):
