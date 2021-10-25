@@ -198,6 +198,8 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
 
         combo_loss = None
         if answerable_labels is not None:
+
+            import pdb; pdb.set_trace()
             combo_loss = self.answerability_loss(answerable_probs, answerable_labels)
 
         # Combine losses
