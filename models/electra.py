@@ -56,18 +56,21 @@ class ElectraClassificationHead(nn.Module):
     Head for sentence-level classification tasks.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, num_labels = None):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        classifier_dropout = (
+        self.dropout = nn.Dropout(
             config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         )
-        self.dropout = nn.Dropout(classifier_dropout)
-        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+        self.out_proj = nn.Linear(
+            config.hidden_size,
+            config.num_labels if num_labels is None else num_labels
+        )
         self.gelu = nn.GELU()
 
     def forward(self, features, **kwargs):
-        x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
+        # Map only the first feature corresponding to [CLS]
+        x = features[:, 0, :]
         x = self.dropout(x)
         x = self.dense(x)
         x = self.gelu(x)
@@ -119,7 +122,7 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
         assert callable(self.qa_outputs)
 
         # Add separate answerability module
-        self.answerability = ElectraClassificationHead(config)
+        self.answerability = ElectraClassificationHead(config, num_labels = 1)
         self.answerability_loss = nn.BCELoss()
 
     def forward(
@@ -198,9 +201,10 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
 
         combo_loss = None
         if answerable_labels is not None:
-
-            import pdb; pdb.set_trace()
-            combo_loss = self.answerability_loss(answerable_probs, answerable_labels)
+            combo_loss = self.answerability_loss(
+                answerable_probs.squeeze(),
+                answerable_labels.to(torch.float)
+            )
 
         # Combine losses
         loss = None
