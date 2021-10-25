@@ -201,6 +201,7 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
 
         combo_loss = None
         if answerable_labels is not None:
+            print(answerable_labels.size(), answerable_probs.size())
             combo_loss = self.answerability_loss(
                 answerable_probs.squeeze(),
                 answerable_labels.to(torch.float)
