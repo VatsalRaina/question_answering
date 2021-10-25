@@ -143,7 +143,7 @@ def main(args):
             b_end_pos_true = batch[2].to(device)
             b_tok_typ_ids = batch[3].to(device)
             b_att_msks = batch[4].to(device)
-            b_answer_true = batch[5].to(device)
+            b_answer_labels = batch[5].to(device)
 
             # This will automatically get loss and predictions
             # TODO: Might need to be changed for flexible choice in loss function
@@ -153,7 +153,7 @@ def main(args):
                 token_type_ids = b_tok_typ_ids,
                 start_positions = b_start_pos_true,
                 end_positions = b_end_pos_true,
-                answerable_true = b_answer_true,
+                answerable_labels = b_answer_labels,
             )
 
             # First part of output is the loss
