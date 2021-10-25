@@ -14,7 +14,7 @@ from torch.utils.data import TensorDataset, DataLoader
 
 from utils import get_args, load_model
 from utils import get_default_device, format_time
-from qadatasets import load_squad_v1
+from qadatasets import load_squad
 
 # Get all arguments for training
 args = get_args().parse_args()
@@ -42,7 +42,7 @@ def main(args):
     model.eval().to(device)
 
     # Load validation dataset
-    all_data = load_squad_v1(
+    all_data = load_squad(
         args = args,
         tokenizer = tokenizer,
         device = device,

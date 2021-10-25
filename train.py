@@ -21,7 +21,7 @@ from transformers import get_linear_schedule_with_warmup
 
 from utils import get_args, load_model, mkdir_p
 from utils import format_time, get_default_device, set_seed
-from qadatasets import load_squad_v1
+from qadatasets import load_squad
 
 # Get all arguments for training
 args = get_args().parse_args()
@@ -71,7 +71,7 @@ def main(args):
     # Load SQuAD v1 dataset
     # TODO: Move this to a different location to make this script dataset agnostic
     print("===> Loading dataset")
-    all_data = load_squad_v1(
+    all_data = load_squad(
             args = args,
             tokenizer = tokenizer,
             device = device,
@@ -83,11 +83,12 @@ def main(args):
     input_ids = all_data['input_ids']
     start_positions_true = all_data['start_positions_true']
     end_positions_true = all_data['end_positions_true']
+    answerable_true = all_data['answerable_true']
     token_type_ids = all_data['token_type_ids']
     attention_masks = all_data['attention_masks']
 
     # Create the DataLoader for training set.
-    train_data = TensorDataset(input_ids, start_positions_true, end_positions_true, token_type_ids, attention_masks)
+    train_data = TensorDataset(input_ids, start_positions_true, end_positions_true, token_type_ids, attention_masks, answerable_true)
     train_sampler = RandomSampler(train_data)
     train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.batch_size)
 
@@ -142,6 +143,7 @@ def main(args):
             b_end_pos_true = batch[2].to(device)
             b_tok_typ_ids = batch[3].to(device)
             b_att_msks = batch[4].to(device)
+            b_answer_true = batch[5].to(device)
 
             # This will automatically get loss and predictions
             # TODO: Might need to be changed for flexible choice in loss function
@@ -150,7 +152,8 @@ def main(args):
                 attention_mask = b_att_msks,
                 token_type_ids = b_tok_typ_ids,
                 start_positions = b_start_pos_true,
-                end_positions = b_end_pos_true
+                end_positions = b_end_pos_true,
+                answerable_true = b_answer_true,
             )
 
             # First part of output is the loss

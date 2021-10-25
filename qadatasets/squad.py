@@ -5,14 +5,14 @@ from utils import _find_sub_list
 
 
 __all__ = [
-    'load_squad_v1'
+    'load_squad'
 ]
 
 
-def load_squad_v1(args, tokenizer, device, split = 'train'):
+def load_squad(args, tokenizer, device, split ='train'):
 
-    # Load SQuAD v1 dataset
-    dataset = load_dataset('squad', split = split)
+    # Load SQuAD v1 dataset or SQuAD v2
+    dataset = load_dataset(args.dataset, split = split)
 
     # Loading is different for validation
     use_train = (split == 'train')
@@ -30,6 +30,7 @@ def load_squad_v1(args, tokenizer, device, split = 'train'):
     if use_train:
         all_data['start_positions_true'] = []
         all_data['end_positions_true'] = []
+        all_data['answerable_true'] = []
 
     # Process every example manually
     for example in dataset:
@@ -58,18 +59,24 @@ def load_squad_v1(args, tokenizer, device, split = 'train'):
         # Get answer
         # TODO: Make class compatible with multiple answers
         if use_train:
-            answer = example["answers"]["text"][0]
 
-            # Encode answer into sequence of ids and remove special starting and ending tokens
-            ans_ids = tokenizer.encode(answer)[1:-1]
+            # If there is no answer, set the idx to the cls token
+            if len(example["answers"]["text"]) == 0:
+                start_idx, end_idx = 0, 0
 
-            # Find where in the input the answer is
-            start_idx, end_idx = _find_sub_list(ans_ids, inp_ids)
-            if start_idx == -1:
-                print("Didn't find answer")
-                print(answer)
-                print(context)
-                continue
+            else:
+                answer = example["answers"]["text"][0]
+
+                # Encode answer into sequence of ids and remove special starting and ending tokens
+                ans_ids = tokenizer.encode(answer)[1:-1]
+
+                # Find where in the input the answer is
+                start_idx, end_idx = _find_sub_list(ans_ids, inp_ids)
+                if start_idx == -1:
+                    print("Didn't find answer")
+                    print(answer)
+                    print(context)
+                    continue
 
         # Storing all here and later converting to tensors
         all_data['input_ids'].append(inp_ids)
@@ -79,6 +86,7 @@ def load_squad_v1(args, tokenizer, device, split = 'train'):
         if use_train:
             all_data['start_positions_true'].append(start_idx)
             all_data['end_positions_true'].append(end_idx)
+            all_data['answerable_true'].append(start_idx != 0)
 
     # Convert to long tensors on device
     for key, value in all_data.items():

@@ -26,6 +26,7 @@ def get_args():
                         type=str, default='qa_electra_large', choices = model_names,
                         help='Specify the type of QA model. Possible choices: ' + ' | '.join(model_names)
     )
+    parser.add_argument('--dataset', 'd', type=str, default='squad', choices=["squad", "squad_v2"], help='Squad dataset')
 
     # Training parameters
     parser.add_argument('--log_every', type=int, default=40, help='Print a logging statement every n batches')
@@ -45,6 +46,10 @@ def get_args():
 
     # Regularisation
     parser.add_argument('--dropout', type=float, default=0.1, help='Specify the dropout rate')
+
+    # For models with a separate answerability module
+    parser.add_argument('--answer_train_separation', type=int, default=0, help='Training the QA module on only answerable examples')
+    parser.add_argument('--answer_alpha', type=float, default=1.0, help='Weight of the answerability loss')
 
     # Data paths
     parser.add_argument('--save_path', type=str, help='Load path to which trained model will be saved')
