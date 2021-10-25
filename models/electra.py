@@ -194,7 +194,7 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
             if self.user_args.answer_train_separation:
                 assert answerable_labels is not None
 
-                total_loss = torch.masked_select(total_loss, answerable_labels)
+                total_loss = torch.masked_select(total_loss, answerable_labels.to(torch.bool))
                 total_loss = total_loss.sum()/sequence_output.size(0)
 
         combo_loss = None
