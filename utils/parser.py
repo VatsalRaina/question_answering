@@ -66,6 +66,7 @@ def get_args_prep():
     parser.add_argument('--load_dir', type=str, help='Directory of saved start and end logits for all seeds')
 
     # Other
-    parser.add_argument('--ens_size', type=str, default=5, help='Number of members in ensemble')
+    parser.add_argument('--ens_size', type=int, default=5, help='Number of members in ensemble')
     # TODO: Maybe instead of "squad_version" we simply have dataset (validation) name to ensure flexibility
     parser.add_argument('--squad_version', type=int, default=1, help='SQuAD version for which evaluation is to be performed')
+    return parser
