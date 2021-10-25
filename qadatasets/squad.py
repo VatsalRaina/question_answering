@@ -36,8 +36,8 @@ def load_squad(args, tokenizer, device, split ='train'):
     # Process every example manually
     for example in dataset:
 
-        count += 1
-        if count > 100: break
+        # count += 1
+        # if count > 100: break
 
         # Get question and context
         question, context = example["question"], example["context"]
