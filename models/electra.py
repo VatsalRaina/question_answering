@@ -184,7 +184,7 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
             start_positions = start_positions.clamp(0, ignored_index)
             end_positions = end_positions.clamp(0, ignored_index)
 
-            loss_fct = nn.CrossEntropyLoss(ignore_index=ignored_index, reduction = None)
+            loss_fct = nn.CrossEntropyLoss(ignore_index=ignored_index, reduction = 'none')
             start_loss = loss_fct(start_logits, start_positions)
             end_loss = loss_fct(end_logits, end_positions)
             total_loss = (start_loss + end_loss) / 2
