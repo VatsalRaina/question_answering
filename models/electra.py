@@ -4,9 +4,7 @@ import torch.nn as nn
 from dataclasses import dataclass
 
 from transformers import ElectraTokenizer
-from transformers import ElectraClassificationHead
 from transformers import QuestionAnsweringModelOutput
-from transformers import ElectraModel
 from transformers import ElectraForQuestionAnswering as HFElectraForQuestionAnswering
 from transformers.file_utils import ModelOutput
 
@@ -51,6 +49,31 @@ class QuestionAnsweringModelOutputCombo(ModelOutput):
     answerable_probs: torch.FloatTensor = None
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
+
+
+class ElectraClassificationHead(nn.Module):
+    """
+    Head for sentence-level classification tasks.
+    """
+
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        classifier_dropout = (
+            config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
+        )
+        self.dropout = nn.Dropout(classifier_dropout)
+        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+        self.gelu = nn.GELU()
+
+    def forward(self, features, **kwargs):
+        x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = self.gelu(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
 
 
 class ElectraForQuestionAnswering(HFElectraForQuestionAnswering):
