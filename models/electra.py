@@ -189,7 +189,6 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
             end_loss = loss_fct(end_logits, end_positions)
             total_loss = (start_loss + end_loss) / 2
 
-            import pdb; pdb.set_trace()
             # Now mask out losses corresponding to unanswerable examples
             if self.user_args.answer_train_separation:
                 assert answerable_labels is not None
