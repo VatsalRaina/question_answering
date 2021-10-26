@@ -11,7 +11,7 @@ __all__ = [
 
 def load_squad(args, tokenizer, device, split ='train'):
 
-    # Load SQuAD v1 dataset or SQuAD v2
+    # Load SQuAD v1 or v2 dataset
     dataset = load_dataset(args.dataset, split = split)
 
     # Loading is different for validation

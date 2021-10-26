@@ -8,18 +8,19 @@ Prepare predictions for official SQuAD evaluation
 
 import os
 import sys
+import json
+import collections
 
 dirname, filename = os.path.split(os.path.abspath(__file__))
 sys.path.append(dirname+'/..')
 
-from utils import get_args_prep
+import numpy as np
+import scipy as sp
+from scipy.stats import entropy
 
 from datasets import load_dataset
 from transformers import ElectraTokenizer, ElectraConfig
-import json
-import collections
-import numpy as np
-from scipy.stats import entropy
+from utils import get_args_prep
 
 # Get all arguments for postprocessing
 args = get_args_prep().parse_args()
@@ -39,6 +40,36 @@ def strip_accents(text):
     return text
 
 
+def get_best_indices(start_indices, end_indices, start_logits, end_logits):
+
+    # Keep track of all preliminary predictions
+    PredictionInfo = collections.namedtuple("PrelimPrediction", ["start_index", "end_index", "start_logit", "end_logit"])
+
+    prediction_info = [PredictionInfo(
+        start_index = 0, end_index = 0,
+        start_logit = start_logits[0],
+        end_logit = end_logits[0]
+    )]
+
+    for start_index in start_indices:
+        for end_index in end_indices:
+            # Throw out invalid predictions
+            if end_index < start_index: continue
+
+            # Append valid predictions
+            prediction_info.append(PredictionInfo(
+                start_index=start_index, end_index=end_index,
+                start_logit=start_logits[start_index],
+                end_logit=end_logits[end_index]
+            ))
+
+    # Sort preliminary predictions by their score
+    prediction_info = sorted(prediction_info, key = lambda x: (x.start_logit + x.end_logit), reverse = True)
+
+    # Return the prediction with the jointly highest score
+    return prediction_info[0]
+
+
 def main(args):
 
     # Store command for future reference
@@ -49,93 +80,94 @@ def main(args):
         f.write(' '.join(sys.argv) + '\n')
         f.write('--------------------------------\n')
 
+    # Number of models
+    n = len(args.load_dirs)
 
-    all_start_logits, all_end_logits = [], []
+    # Save all predictions within this dictionary
+    logit_predictions = {'start': [], 'end': []}
 
-    for f_s, f_e in zip(os.listdir(args.load_start_dir), os.listdir(args.load_end_dir)):
-        assert f_s == f_e
-        if f_s.endswith(".npy"):
-            all_start_logits.append(np.load(os.path.join(args.load_start_dir, f_s)))
-            all_end_logits.append(np.load(os.path.join(args.load_end_dir, f_e)))
+    # Iterate over all directory paths
+    for path in args.load_dirs:
 
-    all_start_logits = np.asarray(all_start_logits)
-    all_end_logits = np.asarray(all_end_logits)
+        # Load start logits
+        file = os.path.join(path, "pred_start_logits.npy")
+        logit_predictions['start'].append(np.load(file))
 
-    # logits will have dimension (ens, dataset, maxlen)
+        # Load end logits
+        file = os.path.join(path, "pred_end_logits.npy")
+        logit_predictions['end'].append(np.load(file))
+
+    # Convert into numpy arrays
+    # The logits will have dimension (num models, dataset size, maxlen)
+    for key, item in logit_predictions.items():
+        logit_predictions[key] = np.array(item)
 
     # Ensemble start and end logits
-    ens_start_logits = np.mean(all_start_logits, axis=0 )
-    ens_end_logits = np.mean(all_end_logits, axis=0 )
+    logit_predictions['ensemble_start'] = sp.special.logsumexp(logit_predictions['start'], axis = 0) - np.log(n)
+    logit_predictions['ensemble_end'] = sp.special.logsumexp(logit_predictions['end'], axis=0) - np.log(n)
 
+    # Loading dev data
     dev_data = load_dataset(args.dataset, split='validation')
-    
+
+    # TODO: This should be specified based on what model arch we are using, see test script
     tokenizer = ElectraTokenizer.from_pretrained('google/electra-large-discriminator', do_lower_case=True)
 
     # Find predictions as word spans
     span_predictions = {}
 
     for i, ex in enumerate(dev_data):
-        #print(i)
-        start_logits = ens_start_logits[i, :]
-        end_logits = ens_end_logits[i, :]
 
-        question, passage, qid = ex["question"], ex["context"], ex["id"]
+        # Process each example separately
+        start_logits = logit_predictions['ensemble_start'][i, :]
+        end_logits = logit_predictions['ensemble_end'][i, :]
 
-        concatenation = question + " [SEP] " + passage
-        input_encodings_dict = tokenizer(concatenation, truncation=True, max_length=512, padding="max_length")
+        # Get the question, context and id
+        question, context, qid = ex["question"], ex["context"], ex["id"]
+
+        # The input to the transformer model is based on concatenating question and context
+        # this is serparated by a special SEP token
+        concatenation = question + " [SEP] " + context
+
+        # Tokenizer converts input to be compatible with chosen model
+        # Note we truncate inputs exceesding max length
+        input_encodings_dict = tokenizer(concatenation, truncation=True, max_length=args.max_len, padding="max_length")
+
+        # Extract necessary pieces from tokenizer output, sequence of token ids
         input_ids = input_encodings_dict['input_ids']
 
-        # From first occurence of the SEP token to the last occurence of the SEP token
-        context_start_logits = start_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
-        context_end_logits = end_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
+        # Find occurrence of SEP tokens to isolate the context
+        first_sep_idx = input_ids.index(102) + 1
+        last_sep_idx  = input_ids[::-1].index(102) + 1
 
-        passage_ids = tokenizer.encode(passage)
-        # Remove special tokens
-        passage_ids = passage_ids[1:-1]
+        # From first occurrence of the SEP token to the last occurence of the SEP token
+        context_start_logits = start_logits[first_sep_idx:-last_sep_idx]
+        context_end_logits = end_logits[first_sep_idx:-last_sep_idx]
 
-        # sort our start and end logits from largest to smallest, keeping track of the index
+        # Tokenize contest and remove special tokens
+        context_ids = tokenizer.encode(context)[1:-1]
+
+        # Sort our start and end logits from largest to smallest, keeping track of the index
         start_idx_and_logit = sorted(enumerate(context_start_logits), key=lambda x: x[1], reverse=True)
         end_idx_and_logit = sorted(enumerate(context_end_logits), key=lambda x: x[1], reverse=True)
 
-        # Select top 10 indexes
-        start_indexes = [idx for idx, logit in start_idx_and_logit[:10]]
-        end_indexes = [idx for idx, logit in end_idx_and_logit[:10]]
+        # Select top 10 indexes for computational efficiency
+        start_indices = [idx for idx, _ in start_idx_and_logit[:10]]
+        end_indices = [idx for idx, _ in end_idx_and_logit[:10]]
 
-        # keep track of all preliminary predictions
-        PrelimPrediction = collections.namedtuple("PrelimPrediction", ["start_index", "end_index", "start_logit", "end_logit"])
+        # Get best predictions
+        best = get_best_indices(start_indices, end_indices, context_start_logits, context_end_logits)
 
-        prelim_preds = []
-        prelim_preds.append(
-                PrelimPrediction(
-                    start_index = 0,
-                    end_index = 0,
-                    start_logit = context_start_logits[0],
-                    end_logit = context_end_logits[0]
-                )
+        # Extract answer from context
+        answer = tokenizer.convert_tokens_to_string(
+            tokenizer.convert_ids_to_tokens(
+                context_ids[best.start_index:best.end_index + 1]
             )
-        for start_index in start_indexes:
-            for end_index in end_indexes:
-                # throw out invalid predictions
-                if end_index < start_index:
-                    continue
-                prelim_preds.append(
-                    PrelimPrediction(
-                        start_index = start_index,
-                        end_index = end_index,
-                        start_logit = context_start_logits[start_index],
-                        end_logit = context_end_logits[end_index]
-                    )
-                )
-
-        # sort preliminary predictions by their score
-        prelim_preds = sorted(prelim_preds, key=lambda x: (x.start_logit + x.end_logit), reverse=True)
-        best = prelim_preds[0]
-        answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(passage_ids[best.start_index:best.end_index+1]))
+        )
 
         # Check for unanswerability
         if args.dataset == "squad_v2":
-            #TODO different uncertainty measures need to be considered
 
+            # TODO different uncertainty measures need to be considered
             # Apply softmax
             start_probs = np.exp(context_start_logits) / sum(np.exp(context_start_logits))
             end_probs = np.exp(context_end_logits) / sum(np.exp(context_end_logits))
@@ -146,23 +178,22 @@ def main(args):
             if avg_entropy > args.threshold:
                 answer = ""
 
-
         # The answer after detokenizing often doesn't even end up being an extract from the context
         # due to spacing around various characters e.g. punctuation
         # Hence, it is necessary to match the answer to an extract from the context
-        if answer!="":
+        if answer != "":
             noSpaceToWithSpace = []
-            for pos, char in enumerate(passage):
+            for pos, char in enumerate(context):
                 if char!=' ':
                     noSpaceToWithSpace.append(pos)
-            passage_noSpace = strip_accents(passage.lower().replace(" ", ""))
+            passage_noSpace = strip_accents(context.lower().replace(" ", ""))
             answer_noSpace = strip_accents(answer.replace(" ", ""))
             if answer_noSpace in passage_noSpace:
                 start_char_noSpace = passage_noSpace.find(answer_noSpace)
                 end_char_noSpace = start_char_noSpace + len(answer_noSpace) - 1
                 start_char = noSpaceToWithSpace[start_char_noSpace]
                 end_char = noSpaceToWithSpace[end_char_noSpace]
-                answer = passage[start_char:end_char+1]
+                answer = context[start_char:end_char+1]
             # else:
             #     # Couldn't find the answer as an extract of the context
             #     print(passage.lower())
@@ -171,8 +202,9 @@ def main(args):
 
         span_predictions[qid] = answer
 
-    with open(args.save_dir+'predictions.json', 'w') as fp:
+    with open(os.path.join(args.save_dir, 'predictions.json'), 'w') as fp:
         json.dump(span_predictions, fp)
+
 
 if __name__ == '__main__':
     main(args)

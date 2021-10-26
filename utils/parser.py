@@ -62,11 +62,11 @@ def get_args():
 def get_args_prep():
     parser = argparse.ArgumentParser(description='QA postprocessing for SQuAD evaluation')
 
-    # Data paths
-    parser.add_argument('--save_dir', type=str, help='Directory to which prepped files will be saved')
-    parser.add_argument('--load_start_dir', type=str, help='Directory of saved start logits for all seeds')
-    parser.add_argument('--load_end_dir', type=str, help='Directory of saved end logits for all seeds')
-    # Other
+    # Dataset and paths
     parser.add_argument('--dataset', '-d', type=str, default='squad', choices=["squad", "squad_v2"], help='Squad dataset')
+    parser.add_argument('--save_dir', type=str, help='Directory to which prepped files will be saved')
+    parser.add_argument('--load_dirs', type=int, nargs='+', help='List of directories of saved start and end logits')
+
+    # For uncertainty estimation in squad v2
     parser.add_argument('--threshold_frac', type=float, default=0.5, help='Threshold for unanswerability')
     return parser
