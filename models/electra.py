@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 from dataclasses import dataclass
-from utils import get_default_device
 
 from transformers import ElectraTokenizer
 from transformers import ElectraForQuestionAnswering as HFElectraForQuestionAnswering
@@ -15,6 +14,13 @@ __all__ = [
     'qa_electra_large_modified',
     'qa_electra_large_combo',
 ]
+
+
+def get_default_device(use_cuda = True):
+    """
+    Returns cuda/cpu device
+    """
+    return torch.device('cuda') if (use_cuda and torch.cuda.is_available()) else torch.device('cpu')
 
 
 @dataclass
