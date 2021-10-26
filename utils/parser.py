@@ -67,6 +67,9 @@ def get_args_prep():
     parser.add_argument('--save_dir', type=str, help='Directory to which prepped files will be saved')
     parser.add_argument('--load_dirs', type=str, nargs='+', help='List of directories of saved start and end logits')
 
+    # Max length specification
+    parser.add_argument('--max_len', type=int, default=512, help='Specify the maximum number of input tokens')
+
     # For uncertainty estimation in squad v2
     parser.add_argument('--threshold_frac', type=float, default=0.5, help='Threshold for unanswerability')
     return parser
