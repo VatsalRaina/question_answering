@@ -138,6 +138,17 @@ def main(args):
         best = prelim_preds[0]
         answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(input_ids[best.start_index:best.end_index+1]))
 
+        # Check for unanswerability
+        if args.squad_version == 2:
+            #TODO different uncertainty measures need to be considered
+
+            # From first occurence of the SEP token to the last occurence of the SEP token
+            context_start_logits = start_logits[tokens.index[102] + 1  :  -1 * (tokens[::-1].index[102] + 1) ]
+            context_end_logits = end_logits[tokens.index[102] + 1  :  -1 * (tokens[::-1].index[102] + 1) ]
+
+            print(context_start_logits.sum())
+            break
+
         # The answer after detokenizing often doesn't even end up being an extract from the context
         # due to spacing around various characters e.g. punctuation
         # Hence, it is necessary to match the answer to an extract from the context
