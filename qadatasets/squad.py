@@ -32,8 +32,13 @@ def load_squad(args, tokenizer, device, split ='train'):
         all_data['end_positions_true'] = []
         all_data['answerable_true'] = []
 
+    count = 0
     # Process every example manually
     for example in dataset:
+
+        count += 1
+        if count > 100:
+            break
 
         # Get question and context
         question, context = example["question"], example["context"]
@@ -76,6 +81,10 @@ def load_squad(args, tokenizer, device, split ='train'):
                 # Add the question length to start and end
                 shift = len(tokenizer.encode(question))
                 start_idx, end_idx = start_idx + shift, end_idx + shift
+
+                print(start_idx, end_idx)
+                print(tokenizer.encode(answer)[1:-1])
+                print(inp_ids)
 
                 if start_idx == -1:
                     print("Didn't find answer")
