@@ -133,7 +133,7 @@ def main(args):
         answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(passage_ids[best.start_index:best.end_index+1]))
 
         # Check for unanswerability
-        if args.squad_version == 2:
+        if args.dataset == "squad_v2":
             #TODO different uncertainty measures need to be considered
 
             # Apply softmax
