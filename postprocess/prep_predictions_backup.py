@@ -53,7 +53,7 @@ def main(args):
         assert f_s == f_e
         if f_s.endswith(".npy"):
             all_start_logits.append(np.load(os.path.join(args.load_start_dir, f_s)))
-            all_end_logits.append(np.load(os.path.join(args.load_start_dir, f_e)))
+            all_end_logits.append(np.load(os.path.join(args.load_end_dir, f_e)))
 
     all_start_logits = np.asarray(all_start_logits)
     all_end_logits = np.asarray(all_end_logits)
