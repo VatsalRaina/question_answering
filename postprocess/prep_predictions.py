@@ -154,8 +154,8 @@ def main(args):
             start_entropy = entropy(start_probs, base=2)
             end_entropy = entropy(end_probs, base=2)
             avg_entropy = (start_entropy+end_entropy)/2
-            print(avg_entropy)
-            break
+            if avg_entropy > args.threshold:
+                answer = ""
 
 
         # The answer after detokenizing often doesn't even end up being an extract from the context

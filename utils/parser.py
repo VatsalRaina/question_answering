@@ -69,4 +69,6 @@ def get_args_prep():
     parser.add_argument('--ens_size', type=int, default=5, help='Number of members in ensemble')
     # TODO: Maybe instead of "squad_version" we simply have dataset (validation) name to ensure flexibility
     parser.add_argument('--squad_version', type=int, default=1, help='SQuAD version for which evaluation is to be performed')
+    # TODO: Need to have a more generic implementation
+    parser.add_argument('--threshold', type=float, default=0.0, help='Threshold for unanswerability')
     return parser
