@@ -81,7 +81,7 @@ def main(args):
 
         question, passage, qid = ex["question"], ex["context"], ex["id"]
 
-        concatenation = question + " [SEP] " + passage
+        concatenation = question + "[SEP]" + passage
         input_encodings_dict = tokenizer(concatenation, truncation=True, max_length=512, padding="max_length")
         input_ids = input_encodings_dict['input_ids']
 
