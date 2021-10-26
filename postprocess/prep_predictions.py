@@ -109,8 +109,8 @@ def main(args):
                 PrelimPrediction(
                     start_index = 0,
                     end_index = 0,
-                    start_logit = start_logits[0],
-                    end_logit = end_logits[0]
+                    start_logit = context_start_logits[0],
+                    end_logit = context_end_logits[0]
                 )
             )
         for start_index in start_indexes:
@@ -122,8 +122,8 @@ def main(args):
                     PrelimPrediction(
                         start_index = start_index,
                         end_index = end_index,
-                        start_logit = start_logits[start_index],
-                        end_logit = end_logits[end_index]
+                        start_logit = context_start_logits[start_index],
+                        end_logit = context_end_logits[end_index]
                     )
                 )
 
