@@ -143,8 +143,8 @@ def main(args):
             #TODO different uncertainty measures need to be considered
 
             # From first occurence of the SEP token to the last occurence of the SEP token
-            context_start_logits = start_logits[tokens.index[102] + 1  :  -1 * (tokens[::-1].index[102] + 1) ]
-            context_end_logits = end_logits[tokens.index[102] + 1  :  -1 * (tokens[::-1].index[102] + 1) ]
+            context_start_logits = start_logits[tokens.index[102] + 1  :  -1 * (tokens.flip().index[102] + 1) ]
+            context_end_logits = end_logits[tokens.index[102] + 1  :  -1 * (tokens.flip().index[102] + 1) ]
 
             print(context_start_logits.sum())
             break
