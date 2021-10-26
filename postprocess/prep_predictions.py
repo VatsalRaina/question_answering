@@ -9,7 +9,10 @@ Prepare predictions for official SQuAD evaluation
 import os
 import sys
 
-from utils.parser import get_args_prep
+dirname, filename = os.path.split(os.path.abspath(__file__))
+sys.path.append(dirname+'/..')
+
+from utils import get_args_prep
 
 from datasets import load_dataset
 from transformers import ElectraTokenizer, ElectraConfig
