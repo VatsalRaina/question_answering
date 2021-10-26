@@ -32,8 +32,13 @@ def load_squad(args, tokenizer, device, split ='train'):
         all_data['end_positions_true'] = []
         all_data['answerable_true'] = []
 
+    count = 0
     # Process every example manually
     for example in dataset:
+
+        count += 1
+        if count > 100:
+            break
 
         # Get question and context
         question, context = example["question"], example["context"]
@@ -67,13 +72,22 @@ def load_squad(args, tokenizer, device, split ='train'):
             else:
                 answer = example["answers"]["text"][0]
 
-                # Encode answer into sequence of ids and remove special starting and ending tokens
-                ans_ids = tokenizer.encode(answer)[1:-1]
-
                 # Find where in the input the answer is
-                start_idx, end_idx = _find_sub_list(ans_ids, inp_ids)
-                if start_idx == -1:
-                    print("Didn't find answer")
+                start_idx, end_idx = _find_sub_list(
+                    tokenizer.encode(answer)[1:-1],
+                    tokenizer.encode(context)[1:-1]
+                )
+
+                # Add the question length to start and end
+                shift = len(tokenizer.encode(question))
+                start_idx, end_idx = start_idx + shift, end_idx + shift
+
+                print(start_idx, end_idx)
+                print(tokenizer.encode(answer)[1:-1])
+                print(inp_ids)
+
+                if (start_idx == -1) or (end_idx >= args.max_len):
+                    print("Didn't find answer in the truncated context")
                     print(answer)
                     print(context)
                     continue
