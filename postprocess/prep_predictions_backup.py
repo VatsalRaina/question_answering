@@ -75,28 +75,22 @@ def main(args):
         #print(i)
         start_logits = ens_start_logits[i, :]
         end_logits = ens_end_logits[i, :]
+        question, passage, qid = ex["question"], ex["context"].replace("\n", ""), ex["id"]
 
-        question, passage, qid = ex["question"], ex["context"], ex["id"]
-
-        concatenation = question + " [SEP] " + passage
-        input_encodings_dict = tokenizer(concatenation, truncation=True, max_length=512, padding="max_length")
-        input_ids = input_encodings_dict['input_ids']
-
-        # From first occurence of the SEP token to the last occurence of the SEP token
-        context_start_logits = start_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
-        context_end_logits = end_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
-
-        passage_ids = tokenizer.encode(passage)
-        # Remove special tokens
-        passage_ids = passage_ids[1:-1]
+        combo = question + "[SEP]" + passage
+        input_ids = tokenizer.encode(combo)
+        #input_ids = input_ids[:512]
 
         # sort our start and end logits from largest to smallest, keeping track of the index
-        start_idx_and_logit = sorted(enumerate(context_start_logits), key=lambda x: x[1], reverse=True)
-        end_idx_and_logit = sorted(enumerate(context_end_logits), key=lambda x: x[1], reverse=True)
+        start_idx_and_logit = sorted(enumerate(start_logits), key=lambda x: x[1], reverse=True)
+        end_idx_and_logit = sorted(enumerate(end_logits), key=lambda x: x[1], reverse=True)
 
         # Select top 10 indexes
         start_indexes = [idx for idx, logit in start_idx_and_logit[:10]]
         end_indexes = [idx for idx, logit in end_idx_and_logit[:10]]
+
+        # question tokens are defined as those between the CLS token (101, at position 0) and first SEP (102) token
+        question_indexes = list(range(1, input_ids.index(102) + 1))
 
         # keep track of all preliminary predictions
         PrelimPrediction = collections.namedtuple("PrelimPrediction", ["start_index", "end_index", "start_logit", "end_logit"])
@@ -111,10 +105,23 @@ def main(args):
                 )
             )
         for start_index in start_indexes:
+            if start_index in question_indexes:
+                continue
+            # Ignore [CLS]
+            if start_index==0:
+                continue
             for end_index in end_indexes:
                 # throw out invalid predictions
+                if end_index in question_indexes:
+                    continue
+                if end_index > len(input_ids):
+                    continue
                 if end_index < start_index:
                     continue
+
+                # Reject if the answer span is too long
+                #if (end_index - start_index) > 10:
+                #    continue
                 prelim_preds.append(
                     PrelimPrediction(
                         start_index = start_index,
@@ -127,11 +134,15 @@ def main(args):
         # sort preliminary predictions by their score
         prelim_preds = sorted(prelim_preds, key=lambda x: (x.start_logit + x.end_logit), reverse=True)
         best = prelim_preds[0]
-        answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(passage_ids[best.start_index:best.end_index+1]))
+        answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(input_ids[best.start_index:best.end_index+1]))
 
         # Check for unanswerability
         if args.squad_version == 2:
             #TODO different uncertainty measures need to be considered
+
+            # From first occurence of the SEP token to the last occurence of the SEP token
+            context_start_logits = start_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
+            context_end_logits = end_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
 
             # Apply softmax
             start_probs = np.exp(context_start_logits) / sum(np.exp(context_start_logits))
