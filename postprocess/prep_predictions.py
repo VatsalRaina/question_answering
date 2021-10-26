@@ -81,9 +81,15 @@ def main(args):
 
         question, passage, qid = ex["question"], ex["context"], ex["id"]
 
-        concatenation = question + " [SEP] " + passage
+        concatenation = question + "[SEP]" + passage
         input_encodings_dict = tokenizer(concatenation, truncation=True, max_length=512, padding="max_length")
         input_ids = input_encodings_dict['input_ids']
+
+        # Temp
+        combo = question + "[SEP]" + passage
+        input_ids_alt = tokenizer.encode(combo)
+
+        assert input_ids == input_ids_alt
 
         # From first occurence of the SEP token to the last occurence of the SEP token
         context_start_logits = start_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
