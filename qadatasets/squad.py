@@ -67,11 +67,16 @@ def load_squad(args, tokenizer, device, split ='train'):
             else:
                 answer = example["answers"]["text"][0]
 
-                # Encode answer into sequence of ids and remove special starting and ending tokens
-                ans_ids = tokenizer.encode(answer)[1:-1]
-
                 # Find where in the input the answer is
-                start_idx, end_idx = _find_sub_list(ans_ids, inp_ids)
+                start_idx, end_idx = _find_sub_list(
+                    tokenizer.encode(answer)[1:-1],
+                    tokenizer.encode(context)[1:-1]
+                )
+
+                # Add the question length to start and end
+                shift = len(tokenizer.encode(question))
+                start_idx, end_idx = start_idx + shift, end_idx + shift
+
                 if start_idx == -1:
                     print("Didn't find answer")
                     print(answer)
