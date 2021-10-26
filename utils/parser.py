@@ -65,7 +65,7 @@ def get_args_prep():
     # Dataset and paths
     parser.add_argument('--dataset', '-d', type=str, default='squad', choices=["squad", "squad_v2"], help='Squad dataset')
     parser.add_argument('--save_dir', type=str, help='Directory to which prepped files will be saved')
-    parser.add_argument('--load_dirs', type=int, nargs='+', help='List of directories of saved start and end logits')
+    parser.add_argument('--load_dirs', type=str, nargs='+', help='List of directories of saved start and end logits')
 
     # For uncertainty estimation in squad v2
     parser.add_argument('--threshold_frac', type=float, default=0.5, help='Threshold for unanswerability')
