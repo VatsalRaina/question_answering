@@ -2,7 +2,8 @@ import models as models
 import argparse
 
 __all__ = [
-    'get_args'
+    'get_args',
+    'get_args_prep'
 ]
 
 
@@ -62,13 +63,10 @@ def get_args_prep():
     parser = argparse.ArgumentParser(description='QA postprocessing for SQuAD evaluation')
 
     # Data paths
-    parser.add_argument('--save_dir', type=str, help='Directory to which prepped file will be saved')
-    parser.add_argument('--load_dir', type=str, help='Directory of saved start and end logits for all seeds')
-
+    parser.add_argument('--save_dir', type=str, help='Directory to which prepped files will be saved')
+    parser.add_argument('--load_start_dir', type=str, help='Directory of saved start logits for all seeds')
+    parser.add_argument('--load_end_dir', type=str, help='Directory of saved end logits for all seeds')
     # Other
-    parser.add_argument('--ens_size', type=int, default=5, help='Number of members in ensemble')
-    # TODO: Maybe instead of "squad_version" we simply have dataset (validation) name to ensure flexibility
-    parser.add_argument('--squad_version', type=int, default=1, help='SQuAD version for which evaluation is to be performed')
-    # TODO: Need to have a more generic implementation
-    parser.add_argument('--threshold', type=float, default=0.0, help='Threshold for unanswerability')
+    parser.add_argument('--dataset', '-d', type=str, default='squad', choices=["squad", "squad_v2"], help='Squad dataset')
+    parser.add_argument('--threshold_frac', type=float, default=0.5, help='Threshold for unanswerability')
     return parser
