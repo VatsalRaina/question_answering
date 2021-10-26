@@ -85,9 +85,9 @@ def load_squad(args, tokenizer, device, split ='train'):
                 print(start_idx, end_idx)
                 print(tokenizer.encode(answer)[1:-1])
                 print(inp_ids)
-
-                if start_idx == -1:
-                    print("Didn't find answer")
+                
+                if (start_idx == -1) or (end_idx >= args.max_len):
+                    print("Didn't find answer in the truncated context")
                     print(answer)
                     print(context)
                     continue
