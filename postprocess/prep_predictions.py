@@ -20,6 +20,7 @@ from transformers import ElectraTokenizer, ElectraConfig
 import json
 import collections
 import numpy as np
+from scipy.stats import entropy
 
 # Get all arguments for postprocessing
 args = get_args_prep().parse_args()
@@ -146,9 +147,16 @@ def main(args):
             context_start_logits = start_logits[tokens.index(102) + 1  :  -1 * (tokens[::-1].index(102) + 1) ]
             context_end_logits = end_logits[tokens.index(102) + 1  :  -1 * (tokens[::-1].index(102) + 1) ]
 
-            print(start_logits)
-            print(context_start_logits.sum())
+            # Apply softmax
+            start_probs = np.exp(context_start_logits) / sum(np.exp(context_start_logits))
+            end_probs = np.exp(context_end_logits) / sum(np.exp(context_end_logits))
+
+            start_entropy = entropy(start_probs, base=2)
+            end_entropy = entropy(end_probs, base=2)
+            avg_entropy = (start_entropy+end_entropy)/2
+            print(avg_entropy)
             break
+
 
         # The answer after detokenizing often doesn't even end up being an extract from the context
         # due to spacing around various characters e.g. punctuation
