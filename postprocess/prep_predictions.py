@@ -56,6 +56,8 @@ def main(args):
         all_start_logits.append(np.load(args.load_dir+'seed'+str(i)+'/pred_start_logits.npy'))
         all_end_logits.append(np.load(args.load_dir+'seed'+str(i)+'/pred_end_logits.npy'))
 
+    # logits will have dimension (ens, dataset, maxlen)
+
     # Ensemble start and end logits
     ens_start_logits = np.mean( np.asarray(all_start_logits) , axis=0 )
     ens_end_logits = np.mean( np.asarray(all_end_logits) , axis=0 )
@@ -91,9 +93,8 @@ def main(args):
         start_indexes = [idx for idx, logit in start_idx_and_logit[:10]]
         end_indexes = [idx for idx, logit in end_idx_and_logit[:10]]
 
-        tokens = input_ids
         # question tokens are defined as those between the CLS token (101, at position 0) and first SEP (102) token
-        question_indexes = [j+1 for j, token in enumerate(tokens[1:tokens.index(102)])]
+        question_indexes = list(range(1, input_ids.index(102) + 1))
 
         # keep track of all preliminary predictions
         PrelimPrediction = collections.namedtuple("PrelimPrediction", ["start_index", "end_index", "start_logit", "end_logit"])
@@ -144,8 +145,8 @@ def main(args):
             #TODO different uncertainty measures need to be considered
 
             # From first occurence of the SEP token to the last occurence of the SEP token
-            context_start_logits = start_logits[tokens.index(102) + 1  :  -1 * (tokens[::-1].index(102) + 1) ]
-            context_end_logits = end_logits[tokens.index(102) + 1  :  -1 * (tokens[::-1].index(102) + 1) ]
+            context_start_logits = start_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
+            context_end_logits = end_logits[input_ids.index(102) + 1  :  -1 * (input_ids[::-1].index(102) + 1) ]
 
             # Apply softmax
             start_probs = np.exp(context_start_logits) / sum(np.exp(context_start_logits))
