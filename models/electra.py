@@ -13,6 +13,7 @@ __all__ = [
     'qa_electra_large',
     'qa_electra_large_modified',
     'qa_electra_large_combo',
+    'qa_electra_large_combo_modified',
 ]
 
 
@@ -90,40 +91,6 @@ class ElectraForQuestionAnswering(HFElectraForQuestionAnswering):
     def __init__(self, config):
         super(ElectraForQuestionAnswering, self).__init__(config = config)
 
-    def forward(
-            self,
-            input_ids=None,
-            attention_mask=None,
-            token_type_ids=None,
-            position_ids=None,
-            head_mask=None,
-            inputs_embeds=None,
-            start_positions=None,
-            end_positions=None,
-            output_attentions=None,
-            output_hidden_states=None,
-            return_dict=None,
-            **kwargs,
-    ):
-        return super(ElectraForQuestionAnswering, self).forward(
-            input_ids = input_ids,
-            attention_mask = attention_mask,
-            token_type_ids = token_type_ids,
-            position_ids = position_ids,
-            head_mask = head_mask,
-            inputs_embeds = inputs_embeds,
-            start_positions = start_positions,
-            end_positions = end_positions,
-            output_attentions = output_attentions,
-            output_hidden_states = output_hidden_states,
-            return_dict = return_dict
-        )
-
-
-class ElectraForQuestionAnsweringModified(HFElectraForQuestionAnswering):
-    def __init__(self, config):
-        super(ElectraForQuestionAnsweringModified, self).__init__(config = config)
-
     @staticmethod
     def get_context_mask(ids: torch.Tensor, device = None):
         """
@@ -143,6 +110,32 @@ class ElectraForQuestionAnsweringModified(HFElectraForQuestionAnswering):
         mask = torch.logical_and(indices[:, 0, None] < mask, mask < indices[:, 1, None])
         return mask
 
+    @staticmethod
+    def forward_loss(start_positions, end_positions, start_logits, end_logits, reduction = 'mean', context_mask = None):
+        # If we are on multi-GPU, split add a dimension
+        if len(start_positions.size()) > 1:
+            start_positions = start_positions.squeeze(-1)
+        if len(end_positions.size()) > 1:
+            end_positions = end_positions.squeeze(-1)
+
+        # Sometimes the start/end positions are outside our model inputs, we ignore these terms
+        ignored_index = start_logits.size(1)
+        start_positions = start_positions.clamp(0, ignored_index)
+        end_positions = end_positions.clamp(0, ignored_index)
+
+        if context_mask is not None:
+            # This masking operation ensures that logits not corresponding to elements of interest
+            # have extremely small logits not affecting the probability mask of remaining elements
+            start_logits = start_logits + context_mask.log()
+            end_logits = end_logits + context_mask.log()
+
+        # Define loss function and get the loss for both start and end
+        loss_fct = nn.CrossEntropyLoss(ignore_index = ignored_index, reduction = reduction)
+        start_loss = loss_fct(start_logits, start_positions)
+        end_loss = loss_fct(end_logits, end_positions)
+        total_loss = (start_loss + end_loss) / 2
+        return total_loss
+
     def forward(
             self,
             input_ids=None,
@@ -156,6 +149,8 @@ class ElectraForQuestionAnsweringModified(HFElectraForQuestionAnswering):
             output_attentions=None,
             output_hidden_states=None,
             return_dict=None,
+            reduction='mean',
+            use_context_mask=False,
             **kwargs,
     ):
         """
@@ -190,38 +185,22 @@ class ElectraForQuestionAnsweringModified(HFElectraForQuestionAnswering):
 
         total_loss = None
         if start_positions is not None and end_positions is not None:
-            # If we are on multi-GPU, split add a dimension
-            if len(start_positions.size()) > 1:
-                start_positions = start_positions.squeeze(-1)
-            if len(end_positions.size()) > 1:
-                end_positions = end_positions.squeeze(-1)
 
-            # Sometimes the start/end positions are outside our model inputs, we ignore these terms
-            ignored_index = start_logits.size(1)
-            start_positions = start_positions.clamp(0, ignored_index)
-            end_positions = end_positions.clamp(0, ignored_index)
+            # Get the context mask when logits outside context should not be used
+            context_mask = None if use_context_mask is False else \
+                self.get_context_mask(input_ids, device = get_default_device())
 
-            # Need to get the context mask to ensure our prediction is interpretable over the context
-            mask = self.get_context_mask(
-                ids = input_ids,
-                device = get_default_device(),
-            ).float()
-
-            # This masking operation ensures that logits not corresponding to elements of interest
-            # have extremely small logits not affecting the probability mask of remaining elements
-            start_logits = start_logits + mask.log()
-            end_logits = end_logits + mask.log()
-
-            loss_fct = nn.CrossEntropyLoss(ignore_index = ignored_index)
-            start_loss = loss_fct(start_logits, start_positions)
-            end_loss   = loss_fct(end_logits, end_positions)
-            total_loss = (start_loss + end_loss) / 2
+            total_loss = self.forward_loss(
+                start_positions = start_positions,
+                end_positions = end_positions,
+                start_logits = start_logits,
+                end_logits = end_logits,
+                context_mask = context_mask,
+                reduction = reduction
+            )
 
         if not return_dict:
-            output = (
-                         start_logits,
-                         end_logits,
-                     ) + discriminator_hidden_states[1:]
+            output = (start_logits, end_logits, ) + discriminator_hidden_states[1:]
             return ((total_loss,) + output) if total_loss is not None else output
 
         return QuestionAnsweringModelOutputCombo(
@@ -233,7 +212,42 @@ class ElectraForQuestionAnsweringModified(HFElectraForQuestionAnswering):
         )
 
 
-class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
+class ElectraForQuestionAnsweringModified(ElectraForQuestionAnswering):
+    def __init__(self, config):
+        super(ElectraForQuestionAnsweringModified, self).__init__(config = config)
+
+    def forward(
+            self,
+            input_ids=None,
+            attention_mask=None,
+            token_type_ids=None,
+            position_ids=None,
+            head_mask=None,
+            inputs_embeds=None,
+            start_positions=None,
+            end_positions=None,
+            output_attentions=None,
+            output_hidden_states=None,
+            return_dict=None,
+            **kwargs,
+    ):
+        return super(ElectraForQuestionAnsweringModified, self).forward(
+            input_ids = input_ids,
+            attention_mask = attention_mask,
+            token_type_ids = token_type_ids,
+            position_ids = position_ids,
+            head_mask = head_mask,
+            inputs_embeds = inputs_embeds,
+            start_positions = start_positions,
+            end_positions = end_positions,
+            output_attentions = output_attentions,
+            output_hidden_states = output_hidden_states,
+            return_dict = return_dict,
+            use_context_mask = True,
+        )
+
+
+class ElectraForQuestionAnsweringCombo(ElectraForQuestionAnswering):
     def __init__(self, config):
         super(ElectraForQuestionAnsweringCombo, self).__init__(config = config)
 
@@ -259,6 +273,7 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        use_context_mask=False,
         **kwargs,
     ):
         """
@@ -296,24 +311,19 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
 
         total_loss = None
         if start_positions is not None and end_positions is not None:
-            # If we are on multi-GPU, split add a dimension
-            if len(start_positions.size()) > 1:
-                start_positions = start_positions.squeeze(-1)
-            if len(end_positions.size()) > 1:
-                end_positions = end_positions.squeeze(-1)
 
-            # Sometimes the start/end positions are outside our model inputs, we ignore these terms
-            ignored_index = start_logits.size(1)
-            start_positions = start_positions.clamp(0, ignored_index)
-            end_positions = end_positions.clamp(0, ignored_index)
+            # Get the context mask when logits outside context should not be used
+            context_mask = None if use_context_mask is False else \
+                self.get_context_mask(input_ids, device=get_default_device())
 
-            loss_fct = nn.CrossEntropyLoss(ignore_index = ignored_index, reduction = 'none')
-            start_loss = loss_fct(start_logits, start_positions)
-            end_loss   = loss_fct(end_logits, end_positions)
-            total_loss = (start_loss + end_loss) / 2
-
-            # Mask out losses corresponding to padding
-            #
+            total_loss = self.forward_loss(
+                start_positions=start_positions,
+                end_positions=end_positions,
+                start_logits=start_logits,
+                end_logits=end_logits,
+                context_mask=context_mask,
+                reduction='none'
+            )
 
             # Now mask out losses corresponding to unanswerable examples
             if self.user_args.answer_train_separation:
@@ -335,11 +345,7 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
             loss = total_loss + self.user_args.answer_alpha * combo_loss
 
         if not return_dict:
-            output = (
-                start_logits,
-                end_logits,
-                answerable_probs,
-            ) + discriminator_hidden_states[1:]
+            output = (start_logits, end_logits, answerable_probs, ) + discriminator_hidden_states[1:]
             return ((loss,) + output) if total_loss is not None else output
 
         return QuestionAnsweringModelOutputCombo(
@@ -349,6 +355,41 @@ class ElectraForQuestionAnsweringCombo(HFElectraForQuestionAnswering):
             answerable_probs = answerable_probs,
             hidden_states=discriminator_hidden_states.hidden_states,
             attentions=discriminator_hidden_states.attentions,
+        )
+
+
+class ElectraForQuestionAnsweringComboModified(ElectraForQuestionAnsweringCombo):
+    def __init__(self, config):
+        super(ElectraForQuestionAnsweringComboModified, self).__init__(config = config)
+
+    def forward(
+            self,
+            input_ids=None,
+            attention_mask=None,
+            token_type_ids=None,
+            position_ids=None,
+            head_mask=None,
+            inputs_embeds=None,
+            start_positions=None,
+            end_positions=None,
+            output_attentions=None,
+            output_hidden_states=None,
+            return_dict=None,
+            **kwargs,
+    ):
+        return super(ElectraForQuestionAnsweringComboModified, self).forward(
+            input_ids = input_ids,
+            attention_mask = attention_mask,
+            token_type_ids = token_type_ids,
+            position_ids = position_ids,
+            head_mask = head_mask,
+            inputs_embeds = inputs_embeds,
+            start_positions = start_positions,
+            end_positions = end_positions,
+            output_attentions = output_attentions,
+            output_hidden_states = output_hidden_states,
+            return_dict = return_dict,
+            use_context_mask = True,
         )
 
 
@@ -396,3 +437,17 @@ def qa_electra_large_combo(args, tokenizer_only = False, **kwargs):
 
     return model, tokenizer
 
+
+def qa_electra_large_combo_modified(args, tokenizer_only = False, **kwargs):
+    # Model identifier
+    electra_large = "google/electra-large-discriminator"
+
+    # Load tokenizer
+    tokenizer = ElectraTokenizer.from_pretrained(electra_large, do_lower_case=True)
+    if tokenizer_only: return tokenizer
+
+    # Load pre-trained model
+    model = ElectraForQuestionAnsweringComboModified.from_pretrained(electra_large)
+    model.user_args = args
+
+    return model, tokenizer
