@@ -195,7 +195,7 @@ class ElectraForQuestionAnswering(HFElectraForQuestionAnswering):
                 end_positions = end_positions,
                 start_logits = start_logits,
                 end_logits = end_logits,
-                context_mask = context_mask,
+                context_mask = context_mask.float(),
                 reduction = reduction
             )
 
@@ -321,8 +321,8 @@ class ElectraForQuestionAnsweringCombo(ElectraForQuestionAnswering):
                 end_positions=end_positions,
                 start_logits=start_logits,
                 end_logits=end_logits,
-                context_mask=context_mask,
-                reduction='none'
+                context_mask=context_mask.float(),
+                reduction='none' if self.user_args.answer_train_separation else 'mean'
             )
 
             # Now mask out losses corresponding to unanswerable examples
