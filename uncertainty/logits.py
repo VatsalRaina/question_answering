@@ -85,13 +85,15 @@ class EnsembleLogits(BaseClass):
             uncertainties['unc_mutual_information'] = uncertainties['unc_entropy_expected'] - uncertainties['unc_expected_entropy']
 
         # Now get various length normalised uncertainties
-        for name, val in uncertainties.items():
+        names = uncertainties.keys()
+
+        for name in names:
 
             # Standard length normalisation
-            uncertainties[name + "_len_norm"] = val/context_len
+            uncertainties[name + "_len_norm"] = uncertainties[name]/context_len
 
             # Standard log-length normalisation
-            uncertainties[name + "_log_len_norm"] = val/np.log(context_len)
+            uncertainties[name + "_log_len_norm"] = uncertainties[name]/np.log(context_len)
 
         return uncertainties
 
