@@ -71,25 +71,26 @@ class EnsembleLogits(BaseClass):
         end_log_probs = sp.special.log_softmax(end_logits, axis=-1)
 
         # Get the number of models and context length
-        _, contextlen = start_logits.shape
+        num_models, context_len = start_logits.shape
 
         # Compute all non-normalised uncertainties
         uncertainties['unc_expected_entropy'] = self.compute_expected_entropy(log_probs = start_log_probs)
         uncertainties['unc_expected_entropy'] += self.compute_expected_entropy(log_probs = end_log_probs)
 
-        uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
-        uncertainties['unc_entropy_expected'] += self.compute_entropy_expected(log_probs=end_log_probs)
+        if num_models > 1:
+            uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
+            uncertainties['unc_entropy_expected'] += self.compute_entropy_expected(log_probs=end_log_probs)
 
-        uncertainties['unc_mutual_information'] = uncertainties['unc_entropy_expected'] - uncertainties['unc_expected_entropy']
+            uncertainties['unc_mutual_information'] = uncertainties['unc_entropy_expected'] - uncertainties['unc_expected_entropy']
 
         # Now get various length normalised uncertainties
         for name, val in uncertainties.items():
 
             # Standard length normalisation
-            uncertainties[name + "_len_norm"] = val/contextlen
+            uncertainties[name + "_len_norm"] = val/context_len
 
             # Standard log-length normalisation
-            uncertainties[name + "_log_len_norm"] = val/np.log(contextlen)
+            uncertainties[name + "_log_len_norm"] = val/np.log(context_len)
 
         return uncertainties
 
