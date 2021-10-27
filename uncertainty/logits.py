@@ -85,7 +85,7 @@ class EnsembleLogits(BaseClass):
             uncertainties['unc_mutual_information'] = uncertainties['unc_entropy_expected'] - uncertainties['unc_expected_entropy']
 
         # Now get various length normalised uncertainties
-        names = uncertainties.keys()
+        names = list(uncertainties.keys())
 
         for name in names:
 
