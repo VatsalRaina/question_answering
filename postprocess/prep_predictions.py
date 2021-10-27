@@ -106,13 +106,14 @@ def main(args):
 
     # Iterate over all directory paths
     for path in args.load_dirs:
+        filename = "" if args.dataset == 'squad' else "_" + args.dataset
 
         # Load start logits
-        file = os.path.join(path, "pred_start_logits.npy")
+        file = os.path.join(path, "pred_start_logits{}.npy".format(filename))
         logit_predictions['start'].append(np.load(file))
 
         # Load end logits
-        file = os.path.join(path, "pred_end_logits.npy")
+        file = os.path.join(path, "pred_end_logits{}.npy".format(filename))
         logit_predictions['end'].append(np.load(file))
 
     # Convert into numpy arrays
