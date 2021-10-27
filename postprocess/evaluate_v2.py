@@ -18,16 +18,12 @@ OPTS = None
 
 def parse_args():
   parser = argparse.ArgumentParser('Official evaluation script for SQuAD version 2.0.')
-  parser.add_argument('data_file', metavar='data.json', help='Input data JSON file.')
-  parser.add_argument('pred_file', metavar='pred.json', help='Model predictions.')
-  parser.add_argument('--out-file', '-o', metavar='eval.json',
-                      help='Write accuracy metrics to file (default is stdout).')
-  parser.add_argument('--na-prob-file', '-n', metavar='na_prob.json',
-                      help='Model estimates of probability of no answer.')
-  parser.add_argument('--na-prob-thresh', '-t', type=float, default=1.0,
-                      help='Predict "" if no-answer probability exceeds this (default = 1.0).')
-  parser.add_argument('--out-image-dir', '-p', metavar='out_images', default=None,
-                      help='Save precision-recall curves to directory.')
+  parser.add_argument('--data_file', metavar='data.json', help='Input data JSON file.')
+  parser.add_argument('--pred_file', metavar='pred.json', help='Model predictions.')
+  parser.add_argument('--out-file', '-o', metavar='eval.json', help='Write accuracy metrics to file (default is stdout).')
+  parser.add_argument('--na-prob-file', '-n', metavar='na_prob.json', help='Model estimates of probability of no answer.')
+  parser.add_argument('--na-prob-thresh', '-t', type=float, default=1.0, help='Predict "" if no-answer probability exceeds this (default = 1.0).')
+  parser.add_argument('--out-image-dir', '-p', metavar='out_images', default=None, help='Save precision-recall curves to directory.')
   parser.add_argument('--verbose', '-v', action='store_true')
   if len(sys.argv) == 1:
     parser.print_help()
