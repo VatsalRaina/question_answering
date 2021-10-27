@@ -89,8 +89,10 @@ def main(args):
         print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(eval_dataloader), elapsed))
     
     pred_start_logits, pred_end_logits = np.asarray(pred_start_logits), np.asarray(pred_end_logits)
-    np.save(args.predictions_save_path + "pred_start_logits.npy", pred_start_logits)
-    np.save(args.predictions_save_path + "pred_end_logits.npy", pred_end_logits)
+
+    filename = "" if args.dataset == 'squad' else "_" + args.dataset
+    np.save(args.predictions_save_path + "pred_start_logits{}.npy".format(filename), pred_start_logits)
+    np.save(args.predictions_save_path + "pred_end_logits{}.npy".format(filename), pred_end_logits)
 
 
 if __name__ == '__main__':

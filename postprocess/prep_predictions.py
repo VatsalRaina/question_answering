@@ -229,7 +229,7 @@ def main(args):
             # If the uncertainty exceeds the threshold then set the answer to ""
             unc_span_predictions[qid] = "" if uncs[qid] > threshold else answer
 
-        with open(os.path.join(args.save_dir, unc_name + '_predictions.json'), 'w') as fp:
+        with open(os.path.join(args.save_dir, unc_name + '_squad_v2_predictions.json'), 'w') as fp:
             json.dump(unc_span_predictions, fp)
 
 
