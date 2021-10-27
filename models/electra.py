@@ -140,7 +140,10 @@ class ElectraForQuestionAnsweringModified(HFElectraForQuestionAnswering):
 
         # Create mask for context
         mask = torch.arange(ids.size(-1), device = device).expand(*ids.size())
-        mask = torch.logical_and(indices[:, 0, None] < mask, mask < indices[:, 1, None])
+        if torch.__version__ >= 1.5:
+            mask = torch.logical_and(indices[:, 0, None] < mask, mask < indices[:, 1, None])
+        else:
+            mask = torch.BoolTensor(indices[:, 0, None] < mask) & torch.BoolTensor(mask < indices[:, 1, None])
         return mask
 
     def forward(
