@@ -16,11 +16,12 @@ sys.path.append(dirname+'/..')
 
 import numpy as np
 import scipy as sp
-from scipy.stats import entropy
+import copy as c
 
 from datasets import load_dataset
 from transformers import ElectraTokenizer, ElectraConfig
 from utils import get_args_prep
+from uncertainty.logits import ensemblelogits
 
 # Get all arguments for postprocessing
 args = get_args_prep().parse_args()
@@ -38,6 +39,23 @@ def strip_accents(text):
     text = text.replace("ō", "o").replace("ū", "u").replace("õ", "o").replace("\u1ea1", "a").replace("\u1eb1", "a")
     text = text.replace("\u1ec7", "e").replace("å", "a")
     return text
+
+
+def clean_answer(answer, context):
+    if answer != "":
+        noSpaceToWithSpace = []
+        for pos, char in enumerate(context):
+            if char != ' ':
+                noSpaceToWithSpace.append(pos)
+        passage_noSpace = strip_accents(context.lower().replace(" ", ""))
+        answer_noSpace = strip_accents(answer.replace(" ", ""))
+        if answer_noSpace in passage_noSpace:
+            start_char_noSpace = passage_noSpace.find(answer_noSpace)
+            end_char_noSpace = start_char_noSpace + len(answer_noSpace) - 1
+            start_char = noSpaceToWithSpace[start_char_noSpace]
+            end_char = noSpaceToWithSpace[end_char_noSpace]
+            answer = context[start_char:end_char + 1]
+    return answer
 
 
 def get_best_indices(start_indices, end_indices, start_logits, end_logits):
@@ -115,11 +133,14 @@ def main(args):
     # Find predictions as word spans
     span_predictions = {}
 
+    # Get all uncertainties
+    unc_predictions = {}
+
     for i, ex in enumerate(dev_data):
 
         # Process each example separately
-        start_logits = logit_predictions['ensemble_start'][i, :]
-        end_logits = logit_predictions['ensemble_end'][i, :]
+        start_logits = logit_predictions['ensemble_start'][i]
+        end_logits = logit_predictions['ensemble_end'][i]
 
         # Get the question, context and id
         question, context, qid = ex["question"], ex["context"], ex["id"]
@@ -142,6 +163,7 @@ def main(args):
         # From first occurrence of the SEP token to the last occurence of the SEP token
         context_start_logits = start_logits[first_sep_idx:-last_sep_idx]
         context_end_logits = end_logits[first_sep_idx:-last_sep_idx]
+        context_length = len(context_start_logits)
 
         # Tokenize contest and remove special tokens
         context_ids = tokenizer.encode(context)[1:-1]
@@ -167,43 +189,48 @@ def main(args):
         # Check for unanswerability
         if args.dataset == "squad_v2":
 
-            # TODO different uncertainty measures need to be considered
-            # Apply softmax
-            start_probs = np.exp(context_start_logits) / sum(np.exp(context_start_logits))
-            end_probs = np.exp(context_end_logits) / sum(np.exp(context_end_logits))
+            # Get the logits for all models in the ensemble (num models, seqlen)
+            all_start_logits = logit_predictions['start'][:, i, first_sep_idx:-last_sep_idx]
+            all_end_logits = logit_predictions['end'][:, i, first_sep_idx:-last_sep_idx]
 
-            start_entropy = entropy(start_probs, base=2)
-            end_entropy = entropy(end_probs, base=2)
-            avg_entropy = (start_entropy+end_entropy)/2
-            if avg_entropy > args.threshold:
-                answer = ""
+            # Initialise estimator and get the uncertainties
+            estimator = ensemblelogits()
+            uncertainties = estimator(args, all_start_logits, all_end_logits)
+
+            # Set uncertainties for later processing
+            for unc_name in uncertainties:
+                if unc_name not in unc_predictions:
+                    unc_predictions[unc_name] = {}
+                unc_predictions[unc_name][qid] = uncertainties[unc_name]
 
         # The answer after detokenizing often doesn't even end up being an extract from the context
         # due to spacing around various characters e.g. punctuation
         # Hence, it is necessary to match the answer to an extract from the context
-        if answer != "":
-            noSpaceToWithSpace = []
-            for pos, char in enumerate(context):
-                if char!=' ':
-                    noSpaceToWithSpace.append(pos)
-            passage_noSpace = strip_accents(context.lower().replace(" ", ""))
-            answer_noSpace = strip_accents(answer.replace(" ", ""))
-            if answer_noSpace in passage_noSpace:
-                start_char_noSpace = passage_noSpace.find(answer_noSpace)
-                end_char_noSpace = start_char_noSpace + len(answer_noSpace) - 1
-                start_char = noSpaceToWithSpace[start_char_noSpace]
-                end_char = noSpaceToWithSpace[end_char_noSpace]
-                answer = context[start_char:end_char+1]
-            # else:
-            #     # Couldn't find the answer as an extract of the context
-            #     print(passage.lower())
-            #     print(answer)
-            #     print(' ')
+        span_predictions[qid] = clean_answer(answer, context)
 
-        span_predictions[qid] = answer
+    if args.dataset != "squad_v2":
+        with open(os.path.join(args.save_dir, 'predictions.json'), 'w') as fp:
+            json.dump(span_predictions, fp)
+        return
 
-    with open(os.path.join(args.save_dir, 'predictions.json'), 'w') as fp:
-        json.dump(span_predictions, fp)
+    # Now process the uncertainties and set certain answer
+    for unc_name, uncs in unc_predictions.items():
+
+        # Copy the span predictions
+        unc_span_predictions = c.deepcopy(span_predictions)
+
+        # According to threshold fraction convert
+        threshold = np.array(list(uncs.values()))
+        threshold = np.quantile(threshold, 1 - args.threshold_frac)
+
+        # Now any uncertainty exceeding this threshold will have its answer set to nan
+        for qid, answer in unc_span_predictions.items():
+
+            # If the uncertainty exceeds the threshold then set the answer to ""
+            unc_span_predictions[qid] = "" if uncs[qid] > threshold else answer
+
+        with open(os.path.join(args.save_dir, unc_name + '_predictions.json'), 'w') as fp:
+            json.dump(unc_span_predictions, fp)
 
 
 if __name__ == '__main__':

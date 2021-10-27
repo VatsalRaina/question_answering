@@ -12,7 +12,7 @@ class BaseClass(object):
     def __init__(self):
         pass
 
-    def __call__(self, args, start_logits: np.ndarray, end_logits: np.ndarray, context_mask: np.ndarray, **kwargs) -> Dict:
+    def __call__(self, args, start_logits: np.ndarray, end_logits: np.ndarray, **kwargs) -> Dict:
         """
         Computes all uncertainties and return a dict
         """
@@ -59,11 +59,39 @@ class EnsembleLogits(BaseClass):
         # Entropy of average prediction
         return self.compute_entropy(log_probs)
 
-    def __call__(self, args, start_logits: np.ndarray, end_logits: np.ndarray, context_mask: np.ndarray, **kwargs) -> Dict:
+    def __call__(self, args, start_logits: np.ndarray, end_logits: np.ndarray, **kwargs) -> Dict:
         """
         Computes all uncertainties of interest...
         """
-        raise NotImplementedError
+        # Store all uncertainties here mapping name to value
+        uncertainties = {}
+
+        # Map logits to log-probabilities
+        start_log_probs = sp.special.log_softmax(start_logits, axis = -1)
+        end_log_probs = sp.special.log_softmax(end_logits, axis=-1)
+
+        # Get the number of models and context length
+        _, contextlen = start_logits.shape
+
+        # Compute all non-normalised uncertainties
+        uncertainties['unc_expected_entropy'] = self.compute_expected_entropy(log_probs = start_log_probs)
+        uncertainties['unc_expected_entropy'] += self.compute_expected_entropy(log_probs = end_log_probs)
+
+        uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
+        uncertainties['unc_entropy_expected'] += self.compute_entropy_expected(log_probs=end_log_probs)
+
+        uncertainties['unc_mutual_information'] = uncertainties['unc_entropy_expected'] - uncertainties['unc_expected_entropy']
+
+        # Now get various length normalised uncertainties
+        for name, val in uncertainties.items():
+
+            # Standard length normalisation
+            uncertainties[name + "_len_norm"] = val/contextlen
+
+            # Standard log-length normalisation
+            uncertainties[name + "_log_len_norm"] = val/np.log(contextlen)
+
+        return uncertainties
 
 
 def ensemblelogits():

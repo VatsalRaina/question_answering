@@ -70,6 +70,6 @@ def get_args_prep():
     # Max length specification
     parser.add_argument('--max_len', type=int, default=512, help='Specify the maximum number of input tokens')
 
-    # For uncertainty estimation in squad v2
+    # For uncertainty estimation thresholding in squad v2
     parser.add_argument('--threshold_frac', type=float, default=0.5, help='Threshold for unanswerability')
     return parser
