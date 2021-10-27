@@ -77,7 +77,7 @@ def load_squad(args, tokenizer, device, split ='train'):
                 shift = len(tokenizer.encode(question))
                 start_idx, end_idx = start_idx + shift, end_idx + shift
 
-                if (start_idx == -1) or (end_idx >= args.max_len):
+                if (start_idx == shift - 1) or (end_idx >= args.max_len):
                     print("Didn't find answer in the truncated context")
                     print(answer)
                     print(context)
