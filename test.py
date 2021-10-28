@@ -70,8 +70,10 @@ def main(args):
             input_ids=b_input_ids.to(device),
             attention_mask=b_att_msks.to(device),
             token_type_ids=b_tok_typ_ids.to(device),
-            # return_dict=True
+            output_attentions=args.attention_uncertainty
         )
+
+        import pdb; pdb.set_trace()
 
         # b_start_logits = outputs.start_logits
         # b_end_logits   = outputs.end_logits

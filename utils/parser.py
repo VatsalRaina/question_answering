@@ -52,6 +52,9 @@ def get_args():
     parser.add_argument('--answer_train_separation', type=int, default=0, help='Training the QA module on only answerable examples')
     parser.add_argument('--answer_alpha', type=float, default=1.0, help='Weight of the answerability loss')
 
+    # For computing attention based uncertainty
+    parser.add_argument('--attention_uncertainty', type=int, default=0, help='To compute uncertainty from attention matrices or not')
+
     # Data paths
     parser.add_argument('--save_path', type=str, help='Load path to which trained model will be saved')
     parser.add_argument('--model_path', type=str, help='Load path to trained model')
