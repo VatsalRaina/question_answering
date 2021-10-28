@@ -75,12 +75,12 @@ class EnsembleLogits(BaseClass):
         num_models, context_len = start_logits.shape
 
         # Compute all non-normalised uncertainties
-        uncertainties['unc_expected_entropy'] = self.compute_expected_entropy(log_probs = start_log_probs)
-        uncertainties['unc_expected_entropy'] += self.compute_expected_entropy(log_probs = end_log_probs)
+        uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
+        uncertainties['unc_entropy_expected'] += self.compute_entropy_expected(log_probs=end_log_probs)
 
         if num_models > 1:
-            uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
-            uncertainties['unc_entropy_expected'] += self.compute_entropy_expected(log_probs=end_log_probs)
+            uncertainties['unc_expected_entropy'] = self.compute_expected_entropy(log_probs=start_log_probs)
+            uncertainties['unc_expected_entropy'] += self.compute_expected_entropy(log_probs=end_log_probs)
 
             uncertainties['unc_mutual_information'] = uncertainties['unc_entropy_expected'] - uncertainties['unc_expected_entropy']
 
