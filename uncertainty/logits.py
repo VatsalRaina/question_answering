@@ -38,6 +38,34 @@ class EnsembleLogits(BaseClass):
         """
         return -(np.exp(log_probs) * log_probs).sum(-1)
 
+    def compute_sum_log_prob(self, log_probs: np.ndarray):
+        """
+        Computes the average log-prob over the last axis
+        """
+        return log_probs.sum(-1)
+
+    def compute_expected_sum_log_prob(self, log_probs: np.ndarray):
+        """
+        Computes the sum of log-probabilities over each model prediction and averages over all models.
+        The input is assumed to have shape (num models, *, seqlen)
+        """
+        sumlps = self.compute_sum_log_prob(log_probs)
+        return sumlps.mean(0)
+
+    def compute_sum_log_prob_expected(self, log_probs: np.ndarray):
+        """
+        Computes the sum of log-probabilities over the average model prediction
+        The input is assumed to have shape (num models, *, seqlen)
+        """
+        # Number of models in ensemble
+        n = log_probs.shape[0]
+
+        # Average ensemble prediction
+        log_probs = sp.special.logsumexp(log_probs, axis = 0) - np.log(n)
+
+        # Entropy of average prediction
+        return self.compute_sum_log_prob(log_probs)
+
     def compute_expected_entropy(self, log_probs: np.ndarray):
         """
         Computes the entropy over each model prediction and averages over all models.
@@ -64,7 +92,7 @@ class EnsembleLogits(BaseClass):
         """
         Computes Renyi entropy over the last axis
         """
-        scale = 1. / (1.-alpha)
+        scale = 1. / (1. - alpha)
         return scale * sp.special.logsumexp(alpha * log_probs, axis = -1)
 
     def compute_expected_renyi_entropy(self, log_probs: np.ndarray):
@@ -110,6 +138,9 @@ class EnsembleLogits(BaseClass):
         uncertainties['unc_renyi_entropy_expected'] = self.compute_renyi_entropy_expected(log_probs=start_log_probs)
         uncertainties['unc_renyi_entropy_expected'] += self.compute_renyi_entropy_expected(log_probs=end_log_probs)
 
+        uncertainties['unc_sumlp_expected'] = self.compute_sum_log_prob_expected(log_probs=start_log_probs)
+        uncertainties['unc_sumlp_expected'] += self.compute_sum_log_prob_expected(log_probs=end_log_probs)
+
         if num_models > 1:
             uncertainties['unc_expected_entropy'] = self.compute_expected_entropy(log_probs=start_log_probs)
             uncertainties['unc_expected_entropy'] += self.compute_expected_entropy(log_probs=end_log_probs)
@@ -120,6 +151,9 @@ class EnsembleLogits(BaseClass):
             uncertainties['unc_expected_renyi_entropy'] += self.compute_expected_renyi_entropy(log_probs=end_log_probs)
 
             uncertainties['unc_renyi_mutual_information'] = uncertainties['unc_entropy_renyi_expected'] - uncertainties['unc_expected_renyi_entropy']
+
+            uncertainties['unc_expected_sumlp'] = self.compute_expected_sum_log_prob(log_probs=start_log_probs)
+            uncertainties['unc_expected_sumlp'] += self.compute_expected_sum_log_prob(log_probs=end_log_probs)
 
         # Now get various length normalised uncertainties
         names = list(uncertainties.keys())
