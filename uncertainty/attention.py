@@ -96,7 +96,7 @@ class MultiHeadAttention(BaseClass):
             uncertainties[name + "_len_norm"] = uncertainties[name] / lengths
 
             # Standard log-length normalisation
-            uncertainties[name + "_len_log_len_norm"] = uncertainties[name] / (lengths * lengths.log)
+            uncertainties[name + "_len_log_len_norm"] = uncertainties[name] / (lengths * lengths.log())
 
         return uncertainties
 
