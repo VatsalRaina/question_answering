@@ -12,9 +12,10 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 
+from qadatasets import load_squad
+from uncertainty import multiheadattention
 from utils import get_args, load_model
 from utils import get_default_device, format_time
-from qadatasets import load_squad
 
 # Get all arguments for training
 args = get_args().parse_args()
@@ -61,6 +62,9 @@ def main(args):
     pred_start_logits = []
     pred_end_logits = []
 
+    # Store uncertainties
+    pred_attention_uncertainties = {}
+
     # Measure how long the evaluation takes.
     t0 = time.time()
 
@@ -73,7 +77,23 @@ def main(args):
             output_attentions=args.attention_uncertainty
         )
 
-        import pdb; pdb.set_trace()
+        if args.attention_uncertainty and args.dataset == 'squad_v2':
+
+            # This will be a tuple of attention predictions from all layers
+            attentions = outputs[-1]
+
+            # Extract the attentions for the last layer
+            attentions = attentions[-1]
+
+            # Initialise estimator and get the uncertainties
+            estimator = multiheadattention()
+            uncertainties = estimator(args, attentions, b_input_ids)
+
+            # Set uncertainties for later processing
+            for unc_name in uncertainties:
+                if unc_name not in pred_attention_uncertainties:
+                    pred_attention_uncertainties[unc_name] = []
+                pred_attention_uncertainties[unc_name] += uncertainties[unc_name].detach().cpu().numpy().tolist()
 
         # b_start_logits = outputs.start_logits
         # b_end_logits   = outputs.end_logits
@@ -89,12 +109,20 @@ def main(args):
 
         # Report progress.
         print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(eval_dataloader), elapsed))
-    
-    pred_start_logits, pred_end_logits = np.asarray(pred_start_logits), np.asarray(pred_end_logits)
+
+    # Convert to numpy
+    pred_start_logits, pred_end_logits = np.array(pred_start_logits), np.array(pred_end_logits)
 
     filename = "" if args.dataset == 'squad' else "_" + args.dataset
-    np.save(args.predictions_save_path + "pred_start_logits{}.npy".format(filename), pred_start_logits)
-    np.save(args.predictions_save_path + "pred_end_logits{}.npy".format(filename), pred_end_logits)
+    np.save(os.path.join(args.predictions_save_path, "pred_start_logits{}.npy".format(filename)), pred_start_logits)
+    np.save(os.path.join(args.predictions_save_path, "pred_end_logits{}.npy".format(filename)), pred_end_logits)
+
+    if args.attention_uncertainty and args.dataset == 'squad_v2':
+        # Save all uncertainties in separate files
+        for unc_name, uncs in pred_attention_uncertainties.items():
+
+            # Save to its own numpy file
+            np.save(os.path.join(args.predictions_save_path, "pred_{}.npy".format(unc_name)), np.array(uncs))
 
 
 if __name__ == '__main__':
