@@ -95,6 +95,9 @@ class EnsembleLogits(BaseClass):
             # Standard log-length normalisation
             uncertainties[name + "_log_len_norm"] = uncertainties[name]/np.log(context_len)
 
+            # Multiplicative log-length normalisation
+            uncertainties[name + "_log_len_mul_norm"] = uncertainties[name] * np.log(context_len)
+
         return uncertainties
 
 
