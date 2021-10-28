@@ -59,6 +59,23 @@ def get_args():
     parser.add_argument('--save_path', type=str, help='Load path to which trained model will be saved')
     parser.add_argument('--model_path', type=str, help='Load path to trained model')
     parser.add_argument('--predictions_save_path', type=str, help='Where to save predicted values')
+
+    # For self-distribution distillation
+    parser = get_self_args(parser)
+
+    return parser
+
+
+def get_self_args(parser):
+    # Self-Distribution Distillation
+    parser.add_argument('--self_ratio', type=float, default=0.0, help='Self loss constant size')
+    parser.add_argument('--temperature_scale_est', type=float, default=1.0, help='Temperature in estimating dirichlet')
+    parser.add_argument('--temperature_scale_num', type=float, default=1.0, help='Temperature in kl loss')
+    parser.add_argument('--estimation_iter', type=int, default=1, help='Number of re-estimation steps')
+    parser.add_argument('--num_passes', type=int, default=5, help='Number of forward passes through final linear layer')
+    parser.add_argument('--reverse', type=int, default=0, help='Use reverse KL loss')
+    parser.add_argument('--noise_a', type=float, default=0.0, help='Parameter in stochastic layer')
+    parser.add_argument('--noise_b', type=float, default=0.0, help='Parameter in stochastic layer')
     return parser
 
 
