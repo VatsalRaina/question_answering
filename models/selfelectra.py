@@ -38,9 +38,8 @@ class ElectraForQuestionAnsweringSelf(ElectraForQuestionAnsweringModified):
         end_loss = loss_fct(self.user_args, logits = end_logits, noisy_logits = noisy_end_logits, context_mask = context_mask)
 
         student_loss = 0.50 * (start_loss + end_loss)
-        print(student_loss)
         return student_loss
-    
+
     def forward(
             self,
             input_ids=None,

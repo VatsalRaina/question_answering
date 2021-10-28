@@ -32,13 +32,8 @@ def load_squad(args, tokenizer, device, split ='train'):
         all_data['end_positions_true'] = []
         all_data['answerable_true'] = []
 
-    count = 0
-
     # Process every example manually
     for example in dataset:
-
-        count += 1
-        if count > 500: break
 
         # Get question and context
         question, context = example["question"], example["context"]
