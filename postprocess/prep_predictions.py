@@ -116,6 +116,20 @@ def main(args):
         file = os.path.join(path, "pred_end_logits{}.npy".format(filename))
         logit_predictions['end'].append(np.load(file))
 
+    attention_uncertainties = {}
+    if n == 1:
+        for file in os.listdir(args.load_dirs[0]):
+            if file.startswith("pred_unc_"):
+
+                # Path to uncertainties
+                path = os.path.join(args.load_dirs[0], file)
+
+                # Which are called
+                name = file[5:-4]
+
+                # Store uncertainties
+                attention_uncertainties[name] = np.load(path)
+
     # Convert into numpy arrays
     # The logits will have dimension (num models, dataset size, maxlen)
     for key, item in logit_predictions.items():
@@ -231,6 +245,22 @@ def main(args):
             unc_span_predictions[qid] = "" if uncs[qid] > threshold else answer
 
         with open(os.path.join(args.save_dir, unc_name + '_squad_v2_predictions.json'), 'w') as fp:
+            json.dump(unc_span_predictions, fp)
+
+    for unc_name, uncs in attention_uncertainties.items():
+
+        # Copy the span predictions
+        unc_span_predictions = c.deepcopy(span_predictions)
+
+        # According to threshold fraction convert
+        threshold = np.quantile(uncs, 1 - args.threshold_frac)
+
+        # Now any uncertainty exceeding this threshold will have its answer set to nan
+        for i, (qid, answer) in enumerate(unc_span_predictions.items()):
+            # If the uncertainty exceeds the threshold then set the answer to ""
+            unc_span_predictions[qid] = "" if uncs[i] > threshold else answer
+
+        with open(os.path.join(args.save_dir, unc_name + '_attention_squad_v2_predictions.json'), 'w') as fp:
             json.dump(unc_span_predictions, fp)
 
 
