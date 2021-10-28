@@ -86,7 +86,6 @@ class ElectraClassificationHead(nn.Module):
         x = self.out_proj(x)
         return x
 
-
 ### ELECTRA MODELS ###
 class ElectraForQuestionAnswering(HFElectraForQuestionAnswering):
     def __init__(self, config):
