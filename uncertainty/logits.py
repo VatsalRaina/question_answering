@@ -65,7 +65,7 @@ class EnsembleLogits(BaseClass):
         Computes Renyi entropy over the last axis
         """
         scale = 1. / (1.-alpha)
-        return alpha * log_probs.sum(-1)
+        return scale * sp.special.logsumexp(alpha * log_probs, axis = -1)
 
     def compute_expected_renyi_entropy(self, log_probs: np.ndarray):
         """
@@ -120,7 +120,6 @@ class EnsembleLogits(BaseClass):
             uncertainties['unc_expected_renyi_entropy'] += self.compute_expected_renyi_entropy(log_probs=end_log_probs)
 
             uncertainties['unc_renyi_mutual_information'] = uncertainties['unc_entropy_renyi_expected'] - uncertainties['unc_expected_renyi_entropy']
-
 
         # Now get various length normalised uncertainties
         names = list(uncertainties.keys())
