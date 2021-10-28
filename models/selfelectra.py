@@ -36,8 +36,11 @@ class ElectraForQuestionAnsweringSelf(ElectraForQuestionAnsweringModified):
         loss_fct = DirichletEstimationLoss()
         start_loss = loss_fct(self.user_args, logits = start_logits, noisy_logits = noisy_start_logits, context_mask = context_mask)
         end_loss = loss_fct(self.user_args, logits = end_logits, noisy_logits = noisy_end_logits, context_mask = context_mask)
-        return 0.50 * (start_loss + end_loss)
 
+        student_loss = 0.50 * (start_loss + end_loss)
+        print(student_loss)
+        return student_loss
+    
     def forward(
             self,
             input_ids=None,
