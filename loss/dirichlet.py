@@ -59,7 +59,7 @@ class DirichletEstimation(object):
         Initialises the mean and scale of the estimated dirichlet.
         """
         # Normalise log probabilities
-        self.logprobs = torch.log_softmax(self.logprobs + self.additive_mask, dim = -1)
+        self.logprobs = torch.log_softmax(self.logprobs + self.additive_mask.unsqueeze(1), dim = -1)
 
         # Extract size
         b, m, v = self.logprobs.size()
