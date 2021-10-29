@@ -121,7 +121,7 @@ class EnsembleLogits(BaseClass):
             uncertainties['unc_expected_renyi_entropy'] = self.compute_expected_renyi_entropy(log_probs=start_log_probs)
             uncertainties['unc_expected_renyi_entropy'] += self.compute_expected_renyi_entropy(log_probs=end_log_probs)
 
-            uncertainties['unc_renyi_mutual_information'] = uncertainties['unc_entropy_renyi_expected'] - uncertainties['unc_expected_renyi_entropy']
+            uncertainties['unc_renyi_mutual_information'] = uncertainties['unc_renyi_entropy_expected'] - uncertainties['unc_expected_renyi_entropy']
 
         # Now get various length normalised uncertainties
         names = list(uncertainties.keys())
