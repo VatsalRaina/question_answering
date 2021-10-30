@@ -131,5 +131,5 @@ class MultiHeadAttention(BaseClass):
         return uncertainties
 
 
-def multiheadattention():
-    return MultiHeadAttention()
+def multiheadattention(last = True):
+    return MultiHeadAttention(last = last)
