@@ -186,6 +186,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         alphas = np.exp(log_alphas)
         alpha0 = alphas.sum(axis = -1)
 
+        import pdb; pdb.set_trace()
+        
         entropy = sp.special.gamma(alpha0)/sp.special.gamma(alpha0 + 0.50)
         entropy *= (sp.special.gamma(alphas + 0.50)/sp.special.gamma(alphas)).sum(axis = -1)
 
@@ -201,8 +203,6 @@ class DirichletEnsembleLogits(EnsembleLogits):
         # Map logits to log-probabilities
         start_log_probs = sp.special.log_softmax(start_logits, axis = -1)
         end_log_probs = sp.special.log_softmax(end_logits, axis=-1)
-
-        import pdb; pdb.set_trace()
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
