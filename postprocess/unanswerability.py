@@ -115,7 +115,7 @@ def main(args):
     for unc_name in unc_predictions.keys():
         y_pred = np.asarray(unc_predictions[unc_name])
 
-        precision, recall, threshold = precision_recall_curve(y_true, y_pred)
+        precision, recall, threshold = precision_recall_curve(y_true, 1. / (1 + np.exp(-1 * y_pred)) )
 
         f_score = (2 * precision * recall) / ( precision + recall)
         nan_pos = np.squeeze(np.argwhere(np.isnan(f_score)))
