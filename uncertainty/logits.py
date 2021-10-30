@@ -186,8 +186,6 @@ class DirichletEnsembleLogits(EnsembleLogits):
         alphas = np.exp(log_alphas)
         alpha0 = alphas.sum(axis = -1)
 
-        import pdb; pdb.set_trace()
-        
         entropy = sp.special.gamma(alpha0)/sp.special.gamma(alpha0 + 0.50)
         entropy *= (sp.special.gamma(alphas + 0.50)/sp.special.gamma(alphas)).sum(axis = -1)
 
@@ -222,8 +220,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         uncertainties['unc_expected_renyi_entropy'] += self.compute_expected_renyi_entropy(log_alphas=end_logits)
         uncertainties['unc_renyi_mutual_information'] = uncertainties['unc_renyi_entropy_expected'] - uncertainties['unc_expected_renyi_entropy']
 
-        uncertainties['unc_expected_exp_renyi_entropy'] = self.compute_expected_exp_renyi_entropy(log_alphas = start_logits)
-        uncertainties['unc_expected_exp_renyi_entropy'] += self.compute_expected_exp_renyi_entropy(log_alphas = end_logits)
+        # uncertainties['unc_expected_exp_renyi_entropy'] = self.compute_expected_exp_renyi_entropy(log_alphas = start_logits)
+        # uncertainties['unc_expected_exp_renyi_entropy'] += self.compute_expected_exp_renyi_entropy(log_alphas = end_logits)
 
         # Now get various length normalised uncertainties
         names = list(uncertainties.keys())
