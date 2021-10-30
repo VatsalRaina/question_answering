@@ -56,6 +56,7 @@ def get_args():
     parser.add_argument('--attention_uncertainty', type=int, default=0, help='To compute uncertainty from attention matrices or not')
 
     # Data paths
+    parser.add_argument('--save_all', type=int, default=0, help='Save every epoch checkpoint')
     parser.add_argument('--save_path', type=str, help='Load path to which trained model will be saved')
     parser.add_argument('--model_path', type=str, help='Load path to trained model')
     parser.add_argument('--predictions_save_path', type=str, help='Where to save predicted values')

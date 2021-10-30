@@ -195,7 +195,8 @@ def main(args):
         print("===> Training epoch took: {:}".format(format_time(time.time() - t0)))
 
         # Save epoch checkpoint
-        save_model(args, model, epoch, final = False)
+        if args.save_all:
+            save_model(args, model, epoch, final = False)
 
     # Save final checkpoint
     save_model(args, model, epoch, final = True)
