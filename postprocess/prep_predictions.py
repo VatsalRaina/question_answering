@@ -21,7 +21,7 @@ import copy as c
 from datasets import load_dataset
 from transformers import ElectraTokenizer, ElectraConfig
 from utils import get_args_prep
-from uncertainty.logits import ensemblelogits
+from uncertainty.logits import load_class as load_uncertainty_class
 
 # Get all arguments for postprocessing
 args = get_args_prep().parse_args()
@@ -209,7 +209,7 @@ def main(args):
             all_end_logits = logit_predictions['end'][:, i, first_sep_idx:-last_sep_idx]
 
             # Initialise estimator and get the uncertainties
-            estimator = ensemblelogits()
+            estimator = load_uncertainty_class(args)
             uncertainties = estimator(args, all_start_logits, all_end_logits)
 
             # Set uncertainties for later processing

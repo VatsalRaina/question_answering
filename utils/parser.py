@@ -53,6 +53,8 @@ def get_args():
     parser.add_argument('--answer_alpha', type=float, default=1.0, help='Weight of the answerability loss')
 
     # For computing attention based uncertainty
+    parser.add_argument('--class_uncertainty', type=str, default='ensemblelogits', help="Type of uncertainty estimating class")
+    parser.add_argument('--num_samples_uncertainty', type=int, default=100, help="Number of samples drawn when computing uncertainty")
     parser.add_argument('--attention_uncertainty', type=int, default=0, help='To compute uncertainty from attention matrices or not')
 
     # Data paths
