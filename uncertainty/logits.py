@@ -202,6 +202,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         start_log_alphas = np.exp(start_logits.astype('float128'))
         end_log_alphas = np.exp(end_logits.astype('float128'))
 
+        import pdb; pdb.set_trace()
+
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
 
