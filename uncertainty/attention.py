@@ -7,6 +7,13 @@ __all__ = [
 ]
 
 
+def get_default_device(use_cuda = True):
+    """
+    Returns cuda/cpu device
+    """
+    return torch.device('cuda') if (use_cuda and torch.cuda.is_available()) else torch.device('cpu')
+
+
 class BaseClass(object):
     def __init__(self):
         pass
@@ -19,9 +26,31 @@ class BaseClass(object):
 
 
 class MultiHeadAttention(BaseClass):
-    def __init__(self):
+    def __init__(self, last = True):
         super(MultiHeadAttention, self).__init__()
         self.eps = 1e-30
+
+        # This determines the type of mask used
+        self.last = last
+
+    @staticmethod
+    def get_context_mask(input_ids: torch.Tensor, device = None):
+        """
+        Returns a bool mask corresponding to context locations.
+        This is assuming the input has two SEP tokens with id 102.
+        Input should have shape (batch, seqlen (default 512))
+        """
+
+        # This returns the batch number and index for each batch
+        _, indices = (input_ids == 102).nonzero(as_tuple = True)
+
+        # Ensure that indices can be cast into a shape (batch, 2)
+        indices = indices.view(input_ids.size(0), 2)
+
+        # Create mask for context
+        mask = torch.arange(input_ids.size(-1), device = device).expand(*input_ids.size())
+        mask = torch.logical_and(indices[:, 0, None] < mask, mask < indices[:, 1, None])
+        return mask
 
     def get_padding_mask(self, input_ids: torch.Tensor) -> torch.Tensor:
         return (input_ids != 0).float()
@@ -78,7 +107,8 @@ class MultiHeadAttention(BaseClass):
         uncertainties = {}
 
         # Get the padding mask needed for subsequent computations
-        mask = self.get_padding_mask(input_ids)
+        mask = self.get_context_mask(input_ids, device = get_default_device())
+        if not self.last: mask = self.get_padding_mask(input_ids)
 
         # Get the input lengths
         lengths = mask.sum(-1)
