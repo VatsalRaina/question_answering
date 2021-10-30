@@ -142,6 +142,9 @@ class DirichletEnsembleLogits(EnsembleLogits):
     def __init__(self, num_samples = 100):
         super(DirichletEnsembleLogits, self).__init__()
 
+        # Numerical stability
+        self.eps = 1e-20
+
         # Sampling based uncertainty estimation
         self.samples = num_samples
 
@@ -172,7 +175,7 @@ class DirichletEnsembleLogits(EnsembleLogits):
 
         # Now map to log probabilities and compute entropy
         return super(DirichletEnsembleLogits, self).compute_expected_renyi_entropy(
-            log_probs = np.log(probs)
+            log_probs = np.log(probs + self.eps)
         )
 
     def compute_expected_exp_renyi_entropy(self, log_alphas: np.array):
