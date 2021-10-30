@@ -199,8 +199,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         start_log_probs = sp.special.log_softmax(start_logits, axis = -1)
         end_log_probs = sp.special.log_softmax(end_logits, axis=-1)
 
-        start_log_alphas = np.exp(start_logits)
-        end_log_alphas = np.exp(end_logits)
+        start_log_alphas = np.exp(start_logits.astype('float128'))
+        end_log_alphas = np.exp(end_logits.astype('float128'))
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
