@@ -111,7 +111,7 @@ class MultiHeadAttention(BaseClass):
         if not self.last: mask = self.get_padding_mask(input_ids)
 
         # Get the input lengths
-        lengths = mask.sum(-1)
+        lengths = mask.sum(-1).float()
 
         # Compute the expected entropy from multi-head attention
         uncertainties['unc_expected_entropy'] = self.compute_expected_entropy(attention, mask)
