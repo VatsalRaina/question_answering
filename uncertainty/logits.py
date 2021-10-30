@@ -143,7 +143,7 @@ class DirichletEnsembleLogits(EnsembleLogits):
         super(DirichletEnsembleLogits, self).__init__()
 
         # Numerical stability
-        self.eps = 1e-20
+        self.eps = 1e-8
 
         # Sampling based uncertainty estimation
         self.samples = num_samples
@@ -201,6 +201,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         # Map logits to log-probabilities
         start_log_probs = sp.special.log_softmax(start_logits, axis = -1)
         end_log_probs = sp.special.log_softmax(end_logits, axis=-1)
+
+        import pdb; pdb.set_trace()
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
