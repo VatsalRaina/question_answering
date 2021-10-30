@@ -132,3 +132,6 @@ def main(args):
         threshold = threshold[pos]
         print("threshold", threshold)
         print("F1", best)
+
+if __name__ == '__main__':
+    main(args)
