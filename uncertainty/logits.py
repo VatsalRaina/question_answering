@@ -186,8 +186,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         alphas = np.exp(log_alphas)
         alpha0 = alphas.sum(axis = -1)
 
-        entropy = sp.special.gamma(alpha0)/sp.special.gamma(alpha0 + 0.50)
-        entropy *= (sp.special.gamma(alphas + 0.50)/sp.special.gamma(alphas)).sum(axis = -1)
+        entropy = np.exp(sp.special.gammaln(alpha0) - sp.special.gammaln(alpha0 + 0.50))
+        entropy *= (np.exp(sp.special.gammaln(alphas + 0.50) - sp.special.gammaln(alphas))).sum(axis = -1)
 
         return entropy.mean(0)
 
