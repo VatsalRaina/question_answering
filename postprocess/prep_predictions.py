@@ -227,6 +227,9 @@ def main(args):
         with open(os.path.join(args.save_dir, 'predictions.json'), 'w') as fp:
             json.dump(span_predictions, fp)
         return
+    else:
+        with open(os.path.join(args.save_dir, 'unc_none_squad_v2_predictions.json'), 'w') as fp:
+            json.dump(span_predictions, fp)
 
     # Now process the uncertainties and set certain answer
     for unc_name, uncs in unc_predictions.items():
