@@ -83,12 +83,12 @@ def main(args):
             attentions = outputs[-1]
 
             # Extract the attentions for the last layer
-            attentions = attentions[-1]
-            estimator = multiheadattention(last=True)
+            # attentions = attentions[-1]
+            # estimator = multiheadattention(last=True)
 
-            # Extract the attentions for the third last layer
-            # attentions = attentions[-3]
-            # estimator = multiheadattention(last=False)
+            # Extract the attentions for the first layer
+            attentions = attentions[0]
+            estimator = multiheadattention(last=False)
 
             # Initialise estimator and get the uncertainties
             uncertainties = estimator(args, attentions, b_input_ids)
