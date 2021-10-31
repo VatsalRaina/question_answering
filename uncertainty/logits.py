@@ -30,7 +30,14 @@ class EnsembleLogits(BaseClass):
         """
         Computes the log-confidence over the last axis
         """
-        return sp.special.logsumexp(log_probs, axis = -1)
+        return log_probs.max(-1)
+
+    @staticmethod
+    def compute_logit_confidence(logits: np.ndarray):
+        """
+        Computes the logit-confidence over the last axis
+        """
+        return logits.max(-1) - logits.min(-1)
 
     @staticmethod
     def compute_entropy(log_probs: np.ndarray):
@@ -46,6 +53,23 @@ class EnsembleLogits(BaseClass):
         """
         scale = 1. / (1. - alpha)
         return scale * sp.special.logsumexp(alpha * log_probs, axis = -1)
+
+    # Methods for computing the average confidence
+    def compute_expected_log_confidence(self, log_probs: np.ndarray):
+        """
+        Computes the entropy over each model prediction and averages over all models.
+        The input is assumed to have shape (num models, *, seqlen)
+        """
+        lconf = self.compute_log_confidence(log_probs)
+        return lconf.mean(0)
+
+    def compute_expected_logit_confidence(self, logits: np.ndarray):
+        """
+        Computes the entropy over each model prediction and averages over all models.
+        The input is assumed to have shape (num models, *, seqlen)
+        """
+        lconf = self.compute_logit_confidence(logits)
+        return lconf.mean(0)
 
     # Methods for computing the expected_of_ and _of_expected
     def compute_expected_entropy(self, log_probs: np.ndarray):
@@ -134,6 +158,13 @@ class EnsembleLogits(BaseClass):
 
             # Standard log-length normalisation
             uncertainties[name + "_log_len_norm"] = uncertainties[name]/np.log(context_len)
+
+        # Add probabilistic and logit confidence scores
+        uncertainties['unc_log_confidence'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
+        uncertainties['unc_log_confidence'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
+
+        uncertainties['unc_logit_confidence'] = self.compute_expected_logit_confidence(logits=start_logits)
+        uncertainties['unc_logit_confidence'] += self.compute_expected_logit_confidence(logits=end_logits)
 
         return uncertainties
 
