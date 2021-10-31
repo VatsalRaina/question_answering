@@ -133,7 +133,7 @@ def main(args):
         info_pred = {'num_tokens_unanswerable': [], 'num_tokens_answerable': []}
 
         # According to threshold fraction convert
-        threshold = np.array(list(uncs.values()))
+        threshold = np.array(list(uncs))
         # Force threshold at 0.5 to mimic evaluation set
         threshold = np.quantile(threshold, 0.5)
 
