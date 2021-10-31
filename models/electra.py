@@ -125,6 +125,7 @@ class ElectraForQuestionAnswering(HFElectraForQuestionAnswering):
         end_positions = end_positions.clamp(0, ignored_index)
 
         if context_mask is not None:
+            context_mask = context_mask.float()
             # This masking operation ensures that logits not corresponding to elements of interest
             # have extremely small logits not affecting the probability mask of remaining elements
             start_logits = start_logits + context_mask.log()
@@ -196,7 +197,7 @@ class ElectraForQuestionAnswering(HFElectraForQuestionAnswering):
                 end_positions = end_positions,
                 start_logits = start_logits,
                 end_logits = end_logits,
-                context_mask = context_mask.float(),
+                context_mask = context_mask,
                 reduction = reduction
             )
 
