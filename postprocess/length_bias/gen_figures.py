@@ -79,7 +79,7 @@ def main(args):
     df = pd.DataFrame(list(zip(l_num_tokens, l_type)), columns=['Length', 'Type'])
 
 
-    sns.set_context("poster")
+    # sns.set_context("poster")
 
     sns.histplot(data=df, x="Length", hue="Type", multiple="stack")
 
