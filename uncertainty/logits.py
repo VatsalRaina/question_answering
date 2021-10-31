@@ -130,13 +130,6 @@ class EnsembleLogits(BaseClass):
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
 
-        # Compute logit and probabilistic confidence scores
-        uncertainties['unc_logit_confidence'] = self.compute_expected_logit_confidence(logits=start_logits)
-        uncertainties['unc_logit_confidence'] += self.compute_expected_logit_confidence(logits=end_logits)
-
-        uncertainties['unc_log_confidence'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
-        uncertainties['unc_log_confidence'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
-
         # Compute all non-normalised uncertainties
         uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
         uncertainties['unc_entropy_expected'] += self.compute_entropy_expected(log_probs=end_log_probs)
