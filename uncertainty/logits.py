@@ -233,8 +233,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         end_log_probs = sp.special.log_softmax(end_logits, axis=-1)
 
         # Ensure alphas > 0 similar to training
-        start_logits = self.softplus(start_logits)
-        end_logits = self.softplus(end_logits)
+        # start_logits = self.softplus(start_logits)
+        # end_logits = self.softplus(end_logits)
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
