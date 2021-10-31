@@ -172,6 +172,12 @@ class DirichletEnsembleLogits(EnsembleLogits):
         # Sampling based uncertainty estimation
         self.samples = num_samples
 
+    @staticmethod
+    def softplus(x: np.ndarray, beta = 5.0):
+        x *= beta
+        sx = np.log1p(np.exp(-np.abs(x))) + np.maximum(x, 0)
+        return sx/beta
+
     def compute_expected_entropy(self, log_alphas: np.ndarray):
         """
         Computes the entropy over each model prediction and averages over all models.
@@ -225,6 +231,10 @@ class DirichletEnsembleLogits(EnsembleLogits):
         # Map logits to log-probabilities
         start_log_probs = sp.special.log_softmax(start_logits, axis = -1)
         end_log_probs = sp.special.log_softmax(end_logits, axis=-1)
+
+        # Ensure alphas > 0 similar to training
+        start_logits = self.softplus(start_logits)
+        end_logits = self.softplus(end_logits)
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
