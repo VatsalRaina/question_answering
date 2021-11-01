@@ -28,16 +28,16 @@ class EnsembleLogits(BaseClass):
     @staticmethod
     def compute_log_confidence(log_probs: np.ndarray):
         """
-        Computes the log-confidence over the last axis
+        Computes the negative log-confidence over the last axis
         """
-        return log_probs.max(-1)
+        return -log_probs.max(-1)
 
     @staticmethod
     def compute_logit_confidence(logits: np.ndarray):
         """
         Computes the logit-confidence over the last axis
         """
-        return logits.max(-1) - logits.min(-1)
+        return -(logits.max(-1) - logits.min(-1))
 
     @staticmethod
     def compute_entropy(log_probs: np.ndarray):
@@ -129,6 +129,13 @@ class EnsembleLogits(BaseClass):
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
+
+        # Compute all non-normalised confidence based measures
+        uncertainties['unc_logit_confidence'] = self.compute_expected_logit_confidence(logits=start_logits)
+        uncertainties['unc_logit_confidence'] += self.compute_expected_logit_confidence(logits=end_logits)
+
+        uncertainties['unc_log_confidence'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
+        uncertainties['unc_log_confidence'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
 
         # Compute all non-normalised uncertainties
         uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
@@ -239,6 +246,13 @@ class DirichletEnsembleLogits(EnsembleLogits):
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
+
+        # Compute all non-normalised confidence based measures
+        uncertainties['unc_logit_confidence'] = self.compute_expected_logit_confidence(logits=start_logits)
+        uncertainties['unc_logit_confidence'] += self.compute_expected_logit_confidence(logits=end_logits)
+
+        uncertainties['unc_log_confidence'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
+        uncertainties['unc_log_confidence'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
 
         # Compute all non-normalised uncertainties
         uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)

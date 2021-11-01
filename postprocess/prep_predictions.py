@@ -23,6 +23,10 @@ from transformers import ElectraTokenizer, ElectraConfig
 from utils import get_args_prep
 from uncertainty.logits import load_class as load_uncertainty_class
 
+from sklearn.metrics import roc_auc_score, roc_curve
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import auc
+
 # Get all arguments for postprocessing
 args = get_args_prep().parse_args()
 
@@ -88,6 +92,44 @@ def get_best_indices(start_indices, end_indices, start_logits, end_logits):
     return prediction_info[0]
 
 
+# Detection metrics: Out-of-distribution
+def ood_detection(
+        domain_labels: np.ndarray,
+        measures: np.ndarray,
+        mode: str,
+        rev: bool):
+
+    # Convert to high bit float
+    measures = np.asarray(measures, dtype=np.float128)
+
+    if rev: measures *= -1.0
+
+    if mode == 'PR':
+        precision, recall, thresholds = precision_recall_curve(domain_labels, measures)
+        aupr = auc(recall, precision)
+
+        # Find the best threshold for F1 score
+        best_result = find_best_f1(precision, recall, thresholds)
+
+        return aupr, best_result
+
+    elif mode == 'ROC':
+        # fpr, tpr, thresholds = roc_curve(domain_labels, measures)
+        auroc = roc_auc_score(domain_labels, measures)
+        return auroc
+
+
+def find_best_f1(precision, recall, threshold):
+
+    # Calculate F1 score
+    f_score = (2 * precision * recall) / (precision + recall)
+
+    # Find the position of the best score
+    pos = np.argmax(f_score)
+
+    return precision[pos], recall[pos], threshold[pos], f_score[pos]
+
+
 def main(args):
 
     # Store command for future reference
@@ -151,7 +193,13 @@ def main(args):
     # Get all uncertainties
     unc_predictions = {}
 
+    # Store unanswerability labels for the detection task
+    unans_labels = []
+
     for i, ex in enumerate(dev_data):
+
+        # Get the unanswerability label
+        unans_labels.append(0 if len(ex["answers"]["text"]) == 0 else 1)
 
         # Process each example separately
         start_logits = logit_predictions['ensemble_start'][i]
@@ -227,9 +275,10 @@ def main(args):
         with open(os.path.join(args.save_dir, 'predictions.json'), 'w') as fp:
             json.dump(span_predictions, fp)
         return
-    else:
-        with open(os.path.join(args.save_dir, 'unc_none_squad_v2_predictions.json'), 'w') as fp:
-            json.dump(span_predictions, fp)
+
+    # Store predictions without any uncertainty thresholding
+    with open(os.path.join(args.save_dir, 'unc_none_squad_v2_predictions.json'), 'w') as fp:
+        json.dump(span_predictions, fp)
 
     # Now process the uncertainties and set certain answer
     for unc_name, uncs in unc_predictions.items():
@@ -266,6 +315,28 @@ def main(args):
         with open(os.path.join(args.save_dir, unc_name + '_attention_squad_v2_predictions.json'), 'w') as fp:
             json.dump(unc_span_predictions, fp)
 
+    # Get detection performance for each uncertainty
+    domain_labels = np.array(unans_labels)
+
+    for unc_name in unc_predictions.keys():
+
+        # Get the uncertainty measures
+        measures = np.array(unc_predictions[unc_name])
+
+        # Get the aupr and best threshold performance
+        aupr, [pr, re, th, f1] = ood_detection(domain_labels, measures, mode='PR', rev = False)
+
+        # Get the auroc
+        auroc = ood_detection(domain_labels, measures, mode='ROC', rev = False)
+
+        print("Detection of Unanswerability")
+        print(unc_name)
+        print("Precision:", pr)
+        print("Recall:   ", re)
+        print("Threshold:", th)
+        print("F1:       ", f1)
+        print("AUROC:    ", auroc)
+        print("AUPR:     ", aupr)
 
 if __name__ == '__main__':
     main(args)
