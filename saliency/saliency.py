@@ -68,9 +68,6 @@ def main(args):
 
     for step, (b_input_ids, b_tok_typ_ids, b_att_msks) in enumerate(eval_dataloader, start = 1):
 
-        if step==10:
-            break
-
         embedding_matrix = model.electra.embeddings.word_embeddings
         b_inputs_embeds = torch.tensor(embedding_matrix(b_input_ids.to(device)), requires_grad=True)
 
@@ -92,7 +89,7 @@ def main(args):
         start_sum.backward()
 
         start_saliency = torch.norm(b_inputs_embeds.grad.data.abs(), dim=-1)
-        print(start_saliency.size())
+
         # Store all predictions
         pred_start_grads += start_saliency.detach().cpu().numpy().tolist()
 
