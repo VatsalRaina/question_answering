@@ -124,7 +124,7 @@ def main(args):
     l_type = ['Unanswerable'] * len(info['num_tokens_unanswerable']) + ['Answerable'] * len(info['num_tokens_answerable'])
     df = pd.DataFrame(list(zip(l_num_tokens, l_type)), columns=['Length', 'Type'])
     # sns.set_context("poster")
-    sns.histplot(data=df, x="Length", hue="Type", multiple="stack")
+    sns.histplot(data=df, x="Length", hue="Type", multiple="fill")
     plt.savefig(args.save_dir + 'lengths_true_frac.png')
     plt.clf()
 
