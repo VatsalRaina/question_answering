@@ -108,6 +108,8 @@ def ood_detection(
         precision, recall, thresholds = precision_recall_curve(domain_labels, measures)
         aupr = auc(recall, precision)
 
+        import pdb; pdb.set_trace()
+
         # Find the best threshold for F1 score
         best_result = find_best_f1(precision, recall, thresholds)
 
