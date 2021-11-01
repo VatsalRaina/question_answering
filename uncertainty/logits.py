@@ -56,20 +56,32 @@ class EnsembleLogits(BaseClass):
 
     # Methods for computing the average confidence
     def compute_expected_log_confidence(self, log_probs: np.ndarray):
-        """
-        Computes the entropy over each model prediction and averages over all models.
-        The input is assumed to have shape (num models, *, seqlen)
-        """
         lconf = self.compute_log_confidence(log_probs)
         return lconf.mean(0)
 
-    def compute_expected_logit_confidence(self, logits: np.ndarray):
-        """
-        Computes the entropy over each model prediction and averages over all models.
-        The input is assumed to have shape (num models, *, seqlen)
-        """
-        lconf = self.compute_logit_confidence(logits)
+    def compute_log_confidence_expected(self, log_probs: np.ndarray):
+        # Number of models in ensemble
+        n = log_probs.shape[0]
+
+        # Average ensemble prediction
+        log_probs = sp.special.logsumexp(log_probs, axis=0) - np.log(n)
+
+        # Entropy of average prediction
+        return  self.compute_log_confidence(log_probs)
+
+    def compute_expected_logit_confidence(self, log_probs: np.ndarray):
+        lconf = self.compute_logit_confidence(log_probs)
         return lconf.mean(0)
+
+    def compute_logit_confidence_expected(self, log_probs: np.ndarray):
+        # Number of models in ensemble
+        n = log_probs.shape[0]
+
+        # Average ensemble prediction
+        log_probs = sp.special.logsumexp(log_probs, axis=0) - np.log(n)
+
+        # Entropy of average prediction
+        return self.compute_logit_confidence(log_probs)
 
     # Methods for computing the expected_of_ and _of_expected
     def compute_expected_entropy(self, log_probs: np.ndarray):
@@ -131,11 +143,11 @@ class EnsembleLogits(BaseClass):
         num_models, context_len = start_logits.shape
 
         # Compute all non-normalised confidence based measures
-        uncertainties['unc_logit_confidence'] = self.compute_expected_logit_confidence(logits=start_logits)
-        uncertainties['unc_logit_confidence'] += self.compute_expected_logit_confidence(logits=end_logits)
+        uncertainties['unc_logit_conf_expected'] = self.compute_logit_confidence_expected(log_probs=start_log_probs)
+        uncertainties['unc_logit_conf_expected'] += self.compute_logit_confidence_expected(log_probs=end_log_probs)
 
-        uncertainties['unc_log_confidence'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
-        uncertainties['unc_log_confidence'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
+        uncertainties['unc_log_conf_expected'] = self.compute_log_confidence_expected(log_probs=start_log_probs)
+        uncertainties['unc_log_conf_expected'] += self.compute_log_confidence_expected(log_probs=end_log_probs)
 
         # Compute all non-normalised uncertainties
         uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
@@ -145,6 +157,12 @@ class EnsembleLogits(BaseClass):
         uncertainties['unc_renyi_entropy_expected'] += self.compute_renyi_entropy_expected(log_probs=end_log_probs)
 
         if num_models > 1:
+            uncertainties['unc_expected_logit_conf'] = self.compute_expected_logit_confidence(log_probs=start_log_probs)
+            uncertainties['unc_expected_logit_conf'] += self.compute_expected_logit_confidence(log_probs=end_log_probs)
+
+            uncertainties['unc_expected_log_conf'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
+            uncertainties['unc_expected_log_conf'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
+
             uncertainties['unc_expected_entropy'] = self.compute_expected_entropy(log_probs=start_log_probs)
             uncertainties['unc_expected_entropy'] += self.compute_expected_entropy(log_probs=end_log_probs)
 
@@ -159,6 +177,8 @@ class EnsembleLogits(BaseClass):
         names = list(uncertainties.keys())
 
         for name in names:
+
+            if "_conf" in name: continue
 
             # Standard length normalisation
             uncertainties[name + "_len_norm"] = uncertainties[name]/context_len
@@ -184,6 +204,32 @@ class DirichletEnsembleLogits(EnsembleLogits):
         x *= beta
         sx = np.log1p(np.exp(-np.abs(x))) + np.maximum(x, 0)
         return sx/beta
+
+    def compute_expected_logit_confidence(self, log_alphas: np.ndarray):
+        # Get the number of models and context length
+        num_models, context_len = log_alphas.shape
+
+        # Obtain samples from the dirichlet distribution
+        probs = np.array([np.random.dirichlet(np.exp(la), self.samples) for la in log_alphas])
+        probs = probs.reshape(num_models * self.samples, context_len)
+
+        # Now map to log probabilities and compute entropy
+        return super(DirichletEnsembleLogits, self).compute_expected_logit_confidence(
+            log_probs = np.log(probs + self.eps)
+        )
+
+    def compute_expected_log_confidence(self, log_alphas: np.ndarray):
+        # Get the number of models and context length
+        num_models, context_len = log_alphas.shape
+
+        # Obtain samples from the dirichlet distribution
+        probs = np.array([np.random.dirichlet(np.exp(la), self.samples) for la in log_alphas])
+        probs = probs.reshape(num_models * self.samples, context_len)
+
+        # Now map to log probabilities and compute entropy
+        return super(DirichletEnsembleLogits, self).compute_expected_log_confidence(
+            log_probs = np.log(probs + self.eps)
+        )
 
     def compute_expected_entropy(self, log_alphas: np.ndarray):
         """
@@ -248,11 +294,17 @@ class DirichletEnsembleLogits(EnsembleLogits):
         num_models, context_len = start_logits.shape
 
         # Compute all non-normalised confidence based measures
-        uncertainties['unc_logit_confidence'] = self.compute_expected_logit_confidence(logits=start_logits)
-        uncertainties['unc_logit_confidence'] += self.compute_expected_logit_confidence(logits=end_logits)
+        uncertainties['unc_logit_conf_expected'] = self.compute_logit_confidence_expected(log_probs=start_log_probs)
+        uncertainties['unc_logit_conf_expected'] += self.compute_logit_confidence_expected(log_probs=end_log_probs)
 
-        uncertainties['unc_log_confidence'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
-        uncertainties['unc_log_confidence'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
+        uncertainties['unc_log_conf_expected'] = self.compute_log_confidence_expected(log_probs=start_log_probs)
+        uncertainties['unc_log_conf_expected'] += self.compute_log_confidence_expected(log_probs=end_log_probs)
+
+        uncertainties['unc_expected_logit_conf'] = self.compute_expected_logit_confidence(log_alphas=start_logits)
+        uncertainties['unc_expected_logit_conf'] += self.compute_expected_logit_confidence(log_alphas=end_logits)
+
+        uncertainties['unc_expected_log_conf'] = self.compute_expected_log_confidence(log_alphas=start_logits)
+        uncertainties['unc_expected_log_conf'] += self.compute_expected_log_confidence(log_alphas=end_logits)
 
         # Compute all non-normalised uncertainties
         uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
@@ -276,6 +328,8 @@ class DirichletEnsembleLogits(EnsembleLogits):
         names = list(uncertainties.keys())
 
         for name in names:
+
+            if "_conf" in name: continue
 
             # Standard length normalisation
             uncertainties[name + "_len_norm"] = uncertainties[name]/context_len
