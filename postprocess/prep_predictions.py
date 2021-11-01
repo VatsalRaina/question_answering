@@ -92,23 +92,16 @@ def get_best_indices(start_indices, end_indices, start_logits, end_logits):
     return prediction_info[0]
 
 
-# Detection metrics: Out-of-distribution
-def ood_detection(
-        domain_labels: np.ndarray,
-        measures: np.ndarray,
-        mode: str,
-        rev: bool):
+def ood_detection(domain_labels, measures, mode, rev):
 
     # Convert to high bit float
-    # measures = np.asarray(measures, dtype=np.float128)
+    measures = np.asarray(measures, dtype=np.float128)
 
     if rev: measures *= -1.0
 
     if mode == 'PR':
         precision, recall, thresholds = precision_recall_curve(domain_labels, measures)
         aupr = auc(recall, precision)
-
-        import pdb; pdb.set_trace()
 
         # Find the best threshold for F1 score
         best_result = find_best_f1(precision, recall, thresholds)
@@ -213,7 +206,7 @@ def main(args):
     for i, ex in enumerate(dev_data):
 
         # Get the unanswerability label
-        unans_labels.append(0 if len(ex["answers"]["text"]) == 0 else 1)
+        unans_labels.append(1 if len(ex["answers"]["text"]) == 0 else 0)
 
         # Store qid for uncertainties later on
         qids.append(ex["id"])
