@@ -123,7 +123,6 @@ def main(args):
 
         # Process each example separately
         start_logits = grad_predictions['ensemble_start'][i]
-        end_logits = grad_predictions['ensemble_end'][i]
 
         # Get the question, context and id
         question, context, qid = ex["question"], ex["context"], ex["id"]
@@ -143,24 +142,16 @@ def main(args):
         first_sep_idx = input_ids.index(102) + 1
         last_sep_idx  = input_ids[::-1].index(102) + 1
 
-        # From first occurrence of the SEP token to the last occurence of the SEP token
-        context_start_logits = start_logits[first_sep_idx:-last_sep_idx]
-        context_end_logits = end_logits[first_sep_idx:-last_sep_idx]
-        context_length = len(context_start_logits)
-
-        # Tokenize contest and remove special tokens
-        context_ids = tokenizer.encode(context)[1:-1]
 
         # Check for unanswerability
         if args.dataset == "squad_v2":
 
             # Get the logits for all models in the ensemble (num models, seqlen)
             all_start_logits = grad_predictions['start'][:, i, first_sep_idx:-last_sep_idx]
-            all_end_logits = grad_predictions['end'][:, i, first_sep_idx:-last_sep_idx]
 
             # Initialise estimator and get the uncertainties
             estimator = load_uncertainty_class(args)
-            uncertainties = estimator(args, all_start_logits, all_end_logits)
+            uncertainties = estimator(args, all_start_logits, all_start_logits)
 
             # Set uncertainties for later processing
             for unc_name in uncertainties:
