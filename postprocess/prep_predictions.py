@@ -339,7 +339,7 @@ def main(args):
         # Get the auroc
         auroc = ood_detection(domain_labels, measures, mode='ROC', rev = False)
 
-        print("Detection of Unanswerability")
+        print("\n\nDetection of Unanswerability")
         print(unc_name)
         print("Precision:", pr)
         print("Recall:   ", re)
