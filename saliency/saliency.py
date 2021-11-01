@@ -72,10 +72,10 @@ def main(args):
             break
 
         embedding_matrix = model.electra.embeddings.word_embeddings
-        b_input_embeds = torch.tensor(embedding_matrix(b_input_ids.to(device)), requires_grad=True)
+        b_inputs_embeds = torch.tensor(embedding_matrix(b_input_ids.to(device)), requires_grad=True)
 
         outputs = model(
-            input_embeds=b_input_embeds.to(device),
+            inputs_embeds=b_inputs_embeds.to(device),
             attention_mask=b_att_msks.to(device),
             token_type_ids=b_tok_typ_ids.to(device)
         )
@@ -91,7 +91,7 @@ def main(args):
         # Back-propagate to calculate gradients that influence the start position
         start_sum.backward()
 
-        start_saliency = torch.norm(b_input_embeds.grad.data.abs(), dim=1)
+        start_saliency = torch.norm(b_inputs_embeds.grad.data.abs(), dim=1)
         # Store all predictions
         pred_start_grads += start_saliency.detach().cpu().numpy().tolist()
 
