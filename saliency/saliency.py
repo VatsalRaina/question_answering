@@ -91,7 +91,8 @@ def main(args):
         # Back-propagate to calculate gradients that influence the start position
         start_sum.backward()
 
-        start_saliency = torch.norm(b_inputs_embeds.grad.data.abs(), dim=1)
+        start_saliency = torch.norm(b_inputs_embeds.grad.data.abs(), dim=-1)
+        print(start_saliency.size())
         # Store all predictions
         pred_start_grads += start_saliency.detach().cpu().numpy().tolist()
 
