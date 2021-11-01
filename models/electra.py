@@ -323,7 +323,7 @@ class ElectraForQuestionAnsweringCombo(ElectraForQuestionAnswering):
                 end_positions=end_positions,
                 start_logits=start_logits,
                 end_logits=end_logits,
-                context_mask=context_mask.float(),
+                context_mask=context_mask,
                 reduction='none' if self.user_args.answer_train_separation else 'mean'
             )
 
