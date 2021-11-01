@@ -100,7 +100,7 @@ def ood_detection(
         rev: bool):
 
     # Convert to high bit float
-    measures = np.asarray(measures, dtype=np.float128)
+    # measures = np.asarray(measures, dtype=np.float128)
 
     if rev: measures *= -1.0
 
@@ -124,10 +124,19 @@ def find_best_f1(precision, recall, threshold):
     # Calculate F1 score
     f_score = (2 * precision * recall) / (precision + recall)
 
-    # Find the position of the best score
-    pos = np.argmax(f_score)
+    # Find all nan positions
+    nan_pos = np.squeeze(np.argwhere(np.isnan(f_score)))
 
-    return precision[pos], recall[pos], threshold[pos], f_score[pos]
+    # Remove them from the f1 score
+    f_score_masked = np.delete(f_score, nan_pos, None)
+
+    # Find the best score
+    best = np.amax(f_score_masked)
+
+    # Find the position of best score
+    pos = np.where(f_score == best)
+
+    return precision[pos], recall[pos], threshold[pos], best
 
 
 def main(args):
