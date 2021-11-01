@@ -94,6 +94,7 @@ def get_args_prep():
     # Uncertainty estimation models
     parser.add_argument('--class_uncertainty', type=str, default='ensemblelogits', help="Type of uncertainty estimating class")
     parser.add_argument('--num_samples_uncertainty', type=int, default=100, help="Number of samples drawn when computing uncertainty")
+    parser.add_argument('--use_softplus', type=int, default=1, help="Apply softplus to log alphas of dirichlet model similar to training")
 
     # For uncertainty estimation thresholding in squad v2
     parser.add_argument('--threshold_frac', type=float, default=0.5, help='Threshold for unanswerability')

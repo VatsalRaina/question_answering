@@ -228,9 +228,10 @@ class DirichletEnsembleLogits(EnsembleLogits):
         # Store all uncertainties here mapping name to value
         uncertainties = {}
 
-        # Ensure alphas > 0 similar to training
-        start_logits = self.softplus(start_logits)
-        end_logits = self.softplus(end_logits)
+        if args.use_softplus:
+            # Ensure alphas > 0 similar to training
+            start_logits = self.softplus(start_logits)
+            end_logits = self.softplus(end_logits)
 
         # Map logits to log-probabilities
         start_log_probs = sp.special.log_softmax(start_logits, axis = -1)
