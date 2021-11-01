@@ -196,10 +196,16 @@ def main(args):
     # Store unanswerability labels for the detection task
     unans_labels = []
 
+    # Store qids to ensure ordering
+    qids = []
+
     for i, ex in enumerate(dev_data):
 
         # Get the unanswerability label
         unans_labels.append(0 if len(ex["answers"]["text"]) == 0 else 1)
+
+        # Store qid for uncertainties later on
+        qids.append(ex["id"])
 
         # Process each example separately
         start_logits = logit_predictions['ensemble_start'][i]
@@ -318,10 +324,10 @@ def main(args):
     # Get detection performance for each uncertainty
     domain_labels = np.array(unans_labels)
 
-    for unc_name in unc_predictions.keys():
+    for unc_name, uncs in unc_predictions.items():
 
         # Get the uncertainty measures
-        measures = np.array(unc_predictions[unc_name])
+        measures = np.array([unc_predictions[unc_name][qid] for qid in qids])
 
         # Get the aupr and best threshold performance
         aupr, [pr, re, th, f1] = ood_detection(domain_labels, measures, mode='PR', rev = False)
