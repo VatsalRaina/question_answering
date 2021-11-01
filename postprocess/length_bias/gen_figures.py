@@ -125,32 +125,33 @@ def main(args):
     df = pd.DataFrame(list(zip(l_num_tokens, l_type)), columns=['Length', 'Type'])
     # sns.set_context("poster")
     sns.histplot(data=df, x="Length", hue="Type", multiple="stack")
-    plt.savefig(args.save_dir + 'lengths_true.png')
+    plt.savefig(args.save_dir + 'lengths_true_frac.png')
     plt.clf()
 
-    for unc_name, uncs in unc_predictions.items():
+    # for unc_name, uncs in unc_predictions.items():
 
-        info_pred = {'num_tokens_unanswerable': [], 'num_tokens_answerable': []}
+    #     info_pred = {'num_tokens_unanswerable': [], 'num_tokens_answerable': []}
 
-        # According to threshold fraction convert
-        threshold = np.array(list(uncs))
-        # Force threshold at 0.5 to mimic evaluation set
-        threshold = np.quantile(threshold, 0.5)
+    #     # According to threshold fraction convert
+    #     threshold = np.array(list(uncs))
+    #     # Force threshold at 0.5 to mimic evaluation set
+    #     threshold = np.quantile(threshold, 0.5)
 
-        # Now any uncertainty exceeding this threshold will have its answer set to nan
-        for k, unc in enumerate(uncs):
-            if unc > threshold:
-                info_pred['num_tokens_unanswerable'].append(all_lengths[k])
-            else:
-                info_pred['num_tokens_answerable'].append(all_lengths[k])
+    #     # Now any uncertainty exceeding this threshold will have its answer set to nan
+    #     for k, unc in enumerate(uncs):
+    #         if unc > threshold:
+    #             info_pred['num_tokens_unanswerable'].append(all_lengths[k])
+    #         else:
+    #             info_pred['num_tokens_answerable'].append(all_lengths[k])
 
-        l_num_tokens = info_pred['num_tokens_unanswerable'] + info_pred['num_tokens_answerable']
-        l_type = ['Unanswerable'] * len(info_pred['num_tokens_unanswerable']) + ['Answerable'] * len(info_pred['num_tokens_answerable'])
-        df = pd.DataFrame(list(zip(l_num_tokens, l_type)), columns=['Length', 'Type'])
-        # sns.set_context("poster")
-        sns.histplot(data=df, x="Length", hue="Type", multiple="stack")
-        plt.savefig(args.save_dir + unc_name + '_lengths_pred.png')
-        plt.clf()
+    #     l_num_tokens = info_pred['num_tokens_unanswerable'] + info_pred['num_tokens_answerable']
+    #     l_type = ['Unanswerable'] * len(info_pred['num_tokens_unanswerable']) + ['Answerable'] * len(info_pred['num_tokens_answerable'])
+    #     df = pd.DataFrame(list(zip(l_num_tokens, l_type)), columns=['Length', 'Type'])
+    #     # sns.set_context("poster")
+    #     sns.histplot(data=df, x="Length", hue="Type", multiple="stack")
+    #     plt.savefig(args.save_dir + unc_name + '_lengths_pred.png')
+    #     plt.clf()
+
 
 if __name__ == '__main__':
     main(args)
