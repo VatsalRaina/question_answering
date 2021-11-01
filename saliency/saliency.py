@@ -9,6 +9,9 @@ import sys
 import time
 import numpy as np
 
+dirname, filename = os.path.split(os.path.abspath(__file__))
+sys.path.append(dirname+'/..')
+
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 
