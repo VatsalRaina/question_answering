@@ -176,6 +176,15 @@ def main(args):
                 # Store uncertainties
                 attention_uncertainties[name] = np.load(path)
 
+    unanswerability_probs = []
+    if args.use_unans_probs == 1:
+        for path in args.load_dirs:
+            file = os.path.join(path, "pred_unans_probs{}.npy".format("_" + args.dataset))
+            unanswerability_probs.append(np.load(file))
+        # Ensemble
+        unanswerability_probs = np.mean(unanswerability_probs, axis=0)
+
+
     # Convert into numpy arrays
     # The logits will have dimension (num models, dataset size, maxlen)
     for key, item in logit_predictions.items():
@@ -341,6 +350,18 @@ def main(args):
 
         print("\n\nDetection of Unanswerability")
         print(unc_name)
+        print("Precision:", pr)
+        print("Recall:   ", re)
+        print("Threshold:", th)
+        print("F1:       ", f1)
+        print("AUROC:    ", auroc)
+        print("AUPR:     ", aupr)
+
+    if args.use_unans_probs == 1:
+        aupr, [pr, re, th, f1] = ood_detection(domain_labels, unanswerability_probs, mode='PR', rev = False)
+        auroc = ood_detection(domain_labels, unanswerability_probs, mode='ROC', rev = False)
+        print("\n\nDetection of Unanswerability")
+        print("Unanswerability probabilities")
         print("Precision:", pr)
         print("Recall:   ", re)
         print("Threshold:", th)
