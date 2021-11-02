@@ -106,6 +106,16 @@ class EnsembleLogits(BaseClass):
         # Entropy of average prediction
         return self.compute_entropy(log_probs)
 
+    def compute_epkl(self, log_probs: np.ndarray):
+        """
+        Computes the expected pairwise KL divergence over the average model prediction
+        The input is assumed to have shape (num models, *, seqlen)
+        """
+        exe = self.compute_expected_entropy(log_probs=log_probs)
+        mean_logprobs = np.mean(log_probs, axis=0)
+        mean_probs = np.mean(np.exp(log_probs), axis=0)
+        return -np.sum(mean_probs * mean_logprobs, axis=1) - exe
+
     def compute_expected_renyi_entropy(self, log_probs: np.ndarray):
         """
         Computes the Renyi entropy over each model prediction and averages over all models.
@@ -167,6 +177,9 @@ class EnsembleLogits(BaseClass):
             uncertainties['unc_expected_entropy'] += self.compute_expected_entropy(log_probs=end_log_probs)
 
             uncertainties['unc_mutual_information'] = uncertainties['unc_entropy_expected'] - uncertainties['unc_expected_entropy']
+
+            uncertainties['unc_epkl'] = self.compute_epkl(log_probs=start_log_probs)
+            uncertainties['unc_epkl'] += self.compute_epkl(log_probs=end_log_probs)
 
             uncertainties['unc_expected_renyi_entropy'] = self.compute_expected_renyi_entropy(log_probs=start_log_probs)
             uncertainties['unc_expected_renyi_entropy'] += self.compute_expected_renyi_entropy(log_probs=end_log_probs)
