@@ -47,7 +47,7 @@ class EnsembleLogits(BaseClass):
         return -(np.exp(log_probs) * log_probs).sum(-1)
 
     @staticmethod
-    def compute_renyi_entropy(log_probs: np.ndarray, alpha=0.5):
+    def compute_renyi_entropy(log_probs: np.ndarray, alpha=2):
         """
         Computes Renyi entropy over the last axis
         """
