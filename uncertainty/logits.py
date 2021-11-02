@@ -112,9 +112,9 @@ class EnsembleLogits(BaseClass):
         The input is assumed to have shape (num models, *, seqlen)
         """
         exe = self.compute_expected_entropy(log_probs=log_probs)
-        mean_logprobs = np.mean(log_probs, axis=0)
-        mean_probs = np.mean(np.exp(log_probs), axis=0)
-        return -np.sum(mean_probs * mean_logprobs, axis=1) - exe
+        mean_logprobs = log_probs.mean(0)
+        mean_probs = np.exp(log_probs).mean(0)
+        return -1*(mean_probs * mean_logprobs).sum(-1) - exe
 
     def compute_expected_renyi_entropy(self, log_probs: np.ndarray):
         """
