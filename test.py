@@ -112,8 +112,8 @@ def main(args):
         pred_end_logits += b_end_logits.detach().cpu().numpy().tolist()
 
         if 'combo' in args.arch:
-            b_ans_probs = outputs[2]
-            pred_unans_probs += 1. - b_ans_probs.detach().cpu().numpy().tolist()
+            b_unans_probs = 1. - outputs[2]
+            pred_unans_probs += b_unans_probs.detach().cpu().numpy().tolist()
 
         # Calculate elapsed time in minutes.
         elapsed = format_time(time.time() - t0)
