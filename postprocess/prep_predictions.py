@@ -369,5 +369,21 @@ def main(args):
         print("AUROC:    ", auroc)
         print("AUPR:     ", aupr)
 
+        # Copy the span predictions
+        unans_span_predictions = c.deepcopy(span_predictions)
+
+        # According to threshold fraction convert
+        threshold = np.array(list(unanswerability_probs))
+        threshold = np.quantile(threshold, 1 - args.threshold_frac)
+
+        # Now any uncertainty exceeding this threshold will have its answer set to nan
+        for count, (qid, answer) in enumerate(unans_span_predictions.items()):
+
+            # If the uncertainty exceeds the threshold then set the answer to ""
+            unans_span_predictions[qid] = "" if unanswerability_probs[count] > threshold else answer
+
+        with open(os.path.join(args.save_dir, 'unans_squad_v2_predictions.json'), 'w') as fp:
+            json.dump(unans_span_predictions, fp)
+
 if __name__ == '__main__':
     main(args)
