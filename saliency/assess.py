@@ -151,7 +151,7 @@ def main(args):
 
             # Initialise estimator and get the uncertainties
             estimator = load_uncertainty_class(args)
-            uncertainties = estimator(args, all_start_logits, all_start_logits)
+            uncertainties = estimator(args, np.log(all_start_logits), np.log(all_start_logits))
 
             # Set uncertainties for later processing
             for unc_name in uncertainties:
