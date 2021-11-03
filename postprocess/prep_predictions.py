@@ -176,6 +176,15 @@ def main(args):
                 # Store uncertainties
                 attention_uncertainties[name] = np.load(path)
 
+    unanswerability_probs = []
+    if args.use_unans_probs == 1:
+        for path in args.load_dirs:
+            file = os.path.join(path, "pred_unans_probs{}.npy".format("_" + args.dataset))
+            unanswerability_probs.append(np.load(file))
+        # Ensemble
+        unanswerability_probs = np.mean(unanswerability_probs, axis=0)
+
+
     # Convert into numpy arrays
     # The logits will have dimension (num models, dataset size, maxlen)
     for key, item in logit_predictions.items():
@@ -347,6 +356,34 @@ def main(args):
         print("F1:       ", f1)
         print("AUROC:    ", auroc)
         print("AUPR:     ", aupr)
+
+    if args.use_unans_probs == 1:
+        aupr, [pr, re, th, f1] = ood_detection(domain_labels, unanswerability_probs, mode='PR', rev = False)
+        auroc = ood_detection(domain_labels, unanswerability_probs, mode='ROC', rev = False)
+        print("\n\nDetection of Unanswerability")
+        print("Unanswerability probabilities")
+        print("Precision:", pr)
+        print("Recall:   ", re)
+        print("Threshold:", th)
+        print("F1:       ", f1)
+        print("AUROC:    ", auroc)
+        print("AUPR:     ", aupr)
+
+        # Copy the span predictions
+        unans_span_predictions = c.deepcopy(span_predictions)
+
+        # According to threshold fraction convert
+        threshold = np.array(list(unanswerability_probs))
+        threshold = np.quantile(threshold, 1 - args.threshold_frac)
+
+        # Now any uncertainty exceeding this threshold will have its answer set to nan
+        for count, (qid, answer) in enumerate(unans_span_predictions.items()):
+
+            # If the uncertainty exceeds the threshold then set the answer to ""
+            unans_span_predictions[qid] = "" if unanswerability_probs[count] > threshold else answer
+
+        with open(os.path.join(args.save_dir, 'unans_squad_v2_predictions.json'), 'w') as fp:
+            json.dump(unans_span_predictions, fp)
 
 if __name__ == '__main__':
     main(args)

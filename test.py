@@ -62,6 +62,9 @@ def main(args):
     pred_start_logits = []
     pred_end_logits = []
 
+    # Store unanswerability probabilities
+    pred_unans_probs = []
+
     # Store uncertainties
     pred_attention_uncertainties = {}
 
@@ -108,6 +111,10 @@ def main(args):
         pred_start_logits += b_start_logits.detach().cpu().numpy().tolist()
         pred_end_logits += b_end_logits.detach().cpu().numpy().tolist()
 
+        if 'combo' in args.arch:
+            b_unans_probs = 1. - outputs[2]
+            pred_unans_probs += b_unans_probs.detach().cpu().numpy().tolist()
+
         # Calculate elapsed time in minutes.
         elapsed = format_time(time.time() - t0)
 
@@ -120,6 +127,10 @@ def main(args):
     filename = "" if args.dataset == 'squad' else "_" + args.dataset
     np.save(os.path.join(args.predictions_save_path, "pred_start_logits{}.npy".format(filename)), pred_start_logits)
     np.save(os.path.join(args.predictions_save_path, "pred_end_logits{}.npy".format(filename)), pred_end_logits)
+
+    if 'combo' in args.arch:
+        pred_unans_probs = np.array(pred_unans_probs)
+        np.save(os.path.join(args.predictions_save_path, "pred_unans_probs{}.npy".format(filename)), pred_unans_probs)
 
     if args.attention_uncertainty and args.dataset == 'squad_v2':
         # Save all uncertainties in separate files
