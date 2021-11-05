@@ -26,6 +26,23 @@ class EnsembleLogits(BaseClass):
         super(EnsembleLogits, self).__init__()
 
     @staticmethod
+    def compute_unanswerability(log_probs1: np.ndarray, log_probs2: np.ndarray):
+        """
+        Computes the probability mass of unanswerability
+        """
+
+        # Get the joint log probability matrix
+        joint_log_prob = np.add.outer(log_probs1, log_probs2)
+
+        # Get the probability matrix
+        joint_prob = np.exp(joint_log_prob)
+
+        # Get the unanswerability
+        lower_prob = np.tril(joint_prob, -1)
+
+        return lower_prob.sum()
+
+    @staticmethod
     def compute_log_confidence(log_probs: np.ndarray):
         """
         Computes the negative log-confidence over the last axis
@@ -151,6 +168,9 @@ class EnsembleLogits(BaseClass):
 
         # Get the number of models and context length
         num_models, context_len = start_logits.shape
+
+        # Compute unanswerability probability
+        uncertainties['unc_unanswerability_conf'] = self.compute_unanswerability(start_log_probs, end_log_probs)
 
         # Compute all non-normalised confidence based measures
         uncertainties['unc_logit_conf_expected'] = self.compute_logit_confidence_expected(log_probs=start_log_probs)
