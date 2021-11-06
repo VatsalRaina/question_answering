@@ -99,6 +99,7 @@ def get_args_prep():
     # For uncertainty estimation thresholding in squad v2
     parser.add_argument('--threshold_frac', type=float, default=0.5, help='Threshold for unanswerability')
 
-    # Whether to use explicit unanswerability probs
+    # Whether to use explicit/implicit unanswerability probs
     parser.add_argument('--use_unans_probs', type=int, default=0, help='Use explicit unanswerability probs')
+    parser.add_argument('--use_unans_probs_implicit', type=int, default=0, help='Use implicit unanswerability probs')
     return parser
