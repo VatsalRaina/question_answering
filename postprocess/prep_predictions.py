@@ -413,7 +413,7 @@ def main(args):
         for count, (qid, answer) in enumerate(unans_span_predictions.items()):
 
             # If the uncertainty exceeds the threshold then set the answer to ""
-            unans_span_predictions[qid] = "" if unanswerability_probs[count] > threshold else answer
+            unans_span_predictions[qid] = "" if unans_preds[count] > threshold else answer
 
         with open(os.path.join(args.save_dir, 'unans_implicit_squad_v2_predictions.json'), 'w') as fp:
             json.dump(unans_span_predictions, fp)
