@@ -390,8 +390,9 @@ def main(args):
             json.dump(unans_span_predictions, fp)
 
     if args.use_unans_probs_implicit == 1:
-        aupr, [pr, re, th, f1] = ood_detection(domain_labels, np.asarray(unans_preds), mode='PR', rev = False)
-        auroc = ood_detection(domain_labels, np.asarray(unans_preds), mode='ROC', rev = False)
+        unans_preds = np.asarray(unans_preds)
+        aupr, [pr, re, th, f1] = ood_detection(domain_labels, unans_preds, mode='PR', rev = False)
+        auroc = ood_detection(domain_labels, unans_preds, mode='ROC', rev = False)
         print("\n\nDetection of Unanswerability")
         print("Unanswerability probabilities implicit")
         print("Precision:", pr)
@@ -405,7 +406,7 @@ def main(args):
         unans_span_predictions = c.deepcopy(span_predictions)
 
         # According to threshold fraction convert
-        threshold = np.array(unans_preds)
+        threshold = np.array(list(unans_preds))
         threshold = np.quantile(threshold, 1 - args.threshold_frac)
 
         # Now any uncertainty exceeding this threshold will have its answer set to nan
