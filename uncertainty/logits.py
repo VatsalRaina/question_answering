@@ -57,6 +57,13 @@ class EnsembleLogits(BaseClass):
         return -(logits.max(-1) - logits.min(-1))
 
     @staticmethod
+    def compute_logit_margin(logits: np.ndarray):
+        """
+        Computes the logit-margin (largest - second largest) over the last axis
+        """
+        return -(logits.max(-1) - np.transpose(np.transpose(np.sort(logits))[-2]) )
+
+    @staticmethod
     def compute_entropy(log_probs: np.ndarray):
         """
         Computes the entropy over the last axis
@@ -176,19 +183,25 @@ class EnsembleLogits(BaseClass):
         uncertainties['unc_logit_conf_expected'] = self.compute_logit_confidence_expected(log_probs=start_log_probs)
         uncertainties['unc_logit_conf_expected'] += self.compute_logit_confidence_expected(log_probs=end_log_probs)
 
+        uncertainties['unc_logit_margin_expected'] = self.compute_logit_margin_expected(log_probs=start_log_probs)
+        uncertainties['unc_logit_margin_expected'] += self.compute_logit_margin_expected(log_probs=end_log_probs)
+
         uncertainties['unc_log_conf_expected'] = self.compute_log_confidence_expected(log_probs=start_log_probs)
         uncertainties['unc_log_conf_expected'] += self.compute_log_confidence_expected(log_probs=end_log_probs)
 
         # Compute all non-normalised uncertainties
         uncertainties['unc_entropy_expected'] = self.compute_entropy_expected(log_probs=start_log_probs)
         uncertainties['unc_entropy_expected'] += self.compute_entropy_expected(log_probs=end_log_probs)
-
+        """
         uncertainties['unc_renyi_entropy_expected'] = self.compute_renyi_entropy_expected(log_probs=start_log_probs)
         uncertainties['unc_renyi_entropy_expected'] += self.compute_renyi_entropy_expected(log_probs=end_log_probs)
-
+        """
         if num_models > 1:
             uncertainties['unc_expected_logit_conf'] = self.compute_expected_logit_confidence(log_probs=start_log_probs)
             uncertainties['unc_expected_logit_conf'] += self.compute_expected_logit_confidence(log_probs=end_log_probs)
+
+            uncertainties['unc_expected_logit_margin'] = self.compute_expected_logit_margin(log_probs=start_log_probs)
+            uncertainties['unc_expected_logit_margin'] += self.compute_expected_logit_margin(log_probs=end_log_probs)
 
             uncertainties['unc_expected_log_conf'] = self.compute_expected_log_confidence(log_probs=start_log_probs)
             uncertainties['unc_expected_log_conf'] += self.compute_expected_log_confidence(log_probs=end_log_probs)
@@ -200,12 +213,12 @@ class EnsembleLogits(BaseClass):
 
             uncertainties['unc_epkl'] = self.compute_epkl(log_probs=start_log_probs)
             uncertainties['unc_epkl'] += self.compute_epkl(log_probs=end_log_probs)
-
+            """  
             uncertainties['unc_expected_renyi_entropy'] = self.compute_expected_renyi_entropy(log_probs=start_log_probs)
             uncertainties['unc_expected_renyi_entropy'] += self.compute_expected_renyi_entropy(log_probs=end_log_probs)
 
             uncertainties['unc_renyi_mutual_information'] = uncertainties['unc_renyi_entropy_expected'] - uncertainties['unc_expected_renyi_entropy']
-
+            """
         # Now get various length normalised uncertainties
         names = list(uncertainties.keys())
 
