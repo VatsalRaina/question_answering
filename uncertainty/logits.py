@@ -107,6 +107,20 @@ class EnsembleLogits(BaseClass):
         # Entropy of average prediction
         return self.compute_logit_confidence(log_probs)
 
+    def compute_expected_logit_margin(self, log_probs: np.ndarray):
+        lconf = self.compute_logit_margin(log_probs)
+        return lconf.mean(0)
+
+    def compute_logit_margin_expected(self, log_probs: np.ndarray):
+        # Number of models in ensemble
+        n = log_probs.shape[0]
+
+        # Average ensemble prediction
+        log_probs = sp.special.logsumexp(log_probs, axis=0) - np.log(n)
+
+        # Entropy of average prediction
+        return self.compute_margin_confidence(log_probs)
+
     # Methods for computing the expected_of_ and _of_expected
     def compute_expected_entropy(self, log_probs: np.ndarray):
         """
