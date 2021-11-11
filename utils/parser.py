@@ -102,4 +102,10 @@ def get_args_prep():
     # Whether to use explicit/implicit unanswerability probs
     parser.add_argument('--use_unans_probs', type=int, default=0, help='Use explicit unanswerability probs')
     parser.add_argument('--use_unans_probs_implicit', type=int, default=0, help='Use implicit unanswerability probs')
+
+    # Joint thresholding
+    parser.add_argument('--use_joint_thresholding', type=int, default=0, help='To use joint thresholding')
+    parser.add_argument('--joint_threshold_frac', type=float, default=0, help='Secondary thresholding fraction')
+    parser.add_argument('--joint_threshold_metric', type=str, default='unc_logit_conf_expected', help='secondary metric for unanswerability')
+
     return parser

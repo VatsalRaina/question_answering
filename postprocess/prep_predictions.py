@@ -208,6 +208,7 @@ def main(args):
 
     # Store unanswerability labels for the detection task
     unans_labels = []
+
     # Use the start logit for the [CLS] token
     unans_preds = []
 
@@ -417,6 +418,49 @@ def main(args):
 
         with open(os.path.join(args.save_dir, 'unans_implicit_squad_v2_predictions.json'), 'w') as fp:
             json.dump(unans_span_predictions, fp)
+
+    if args.use_joint_thresholding and (args.use_unans_probs == 1 or args.use_unans_probs_implicit == 1):
+
+        # Copy the span predictions
+        unans_span_predictions = c.deepcopy(span_predictions)
+
+        # Get the main unanswerability scores
+        scores = unanswerability_probs if args.use_unans_probs_implicit == 1 else unans_preds
+
+        # Now threshold with the main metric
+        threshold = np.array(list(scores))
+        threshold = np.quantile(threshold, 1 - (args.threshold_frac - args.joint_threshold_frac))
+
+        # Get secondary metric
+        secondary_scores = c.deepcopy(unc_predictions[args.joint_threshold_metric])
+
+        # Now any uncertainty exceeding this threshold will have its answer set to nan
+        for count, (_, _) in enumerate(unans_span_predictions.items()):
+
+            # Get the qid
+            qid = qids[count]
+
+            # Get the answer
+            answer = unans_span_predictions[qid]
+
+            # If the uncertainty exceeds the threshold then set the answer to ""
+            unans_span_predictions[qid] = "" if scores[count] > threshold else answer
+
+            # Set thresholded items to negtive inf
+            secondary_scores[qid] = -float('inf')
+
+        # Now threshold with the main metric
+        threshold = np.array(list(secondary_scores.values()))
+        threshold = np.quantile(threshold, 1 - args.joint_threshold_frac)
+
+        for qid, answer in unans_span_predictions.items():
+
+            # If the uncertainty exceeds the threshold then set the answer to ""
+            unc_span_predictions[qid] = "" if secondary_scores[qid] > threshold else answer
+
+        with open(os.path.join(args.save_dir, args.joint_threshold_metric + '_joint_squad_v2_predictions.json'), 'w') as fp:
+            json.dump(unc_span_predictions, fp)
+
 
 if __name__ == '__main__':
     main(args)
