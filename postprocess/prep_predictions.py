@@ -425,7 +425,7 @@ def main(args):
         unans_span_predictions = c.deepcopy(span_predictions)
 
         # Get the main unanswerability scores
-        scores = unanswerability_probs if args.use_unans_probs_implicit == 1 else unans_preds
+        scores = unanswerability_probs if args.use_unans_probs == 1 else unans_preds
 
         # Now threshold with the main metric
         threshold = np.array(list(scores))
