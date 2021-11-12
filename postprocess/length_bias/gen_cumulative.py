@@ -119,43 +119,52 @@ def main(args):
             unc_predictions[unc_name].append(uncertainties[unc_name])
 
     # Create cumulative plot using the truly unanswerable examples only
-    token_lens = np.sort(np.asarray(info['num_tokens_unanswerable']))
-    tot_len = np.sum(token_lens)
-    token_cum_lens = np.cumsum(token_lens) / tot_len
-    num_items = len(token_cum_lens)
-    frac = np.linspace(0,1,num_items)
-    plt.plot(frac, token_cum_lens, label='True')
-    plt.xlabel('Retention fraction')
-    plt.ylabel('Cumulative fraction of total length')
+    tot_num_unanswerable = len(info['num_tokens_unanswerable'])
+    unanswerability_mask = [1]*len(info['num_tokens_unanswerable']) + [0]*len(info['num_tokens_answerable'])
+    all_tokens = info['num_tokens_unanswerable'] + info['num_tokens_answerable']
+    # Sort from shortest to longest length
+    all_tokens, unanswerability_mask = zip(*sorted(zip(all_tokens, unanswerability_mask)))
+    frac_items = np.linspace(0,1,len(all_tokens))
+    cum_frac_unanswerable = np.cumsum(unanswerability_mask) / tot_num_unanswerable
+    plt.plot(frac_items, cum_frac_unanswerable, label='True')
+    
+    
+
+    for unc_name, uncs in unc_predictions.items():
+
+        if unc_name not in ['mutual_information']:
+            continue
+
+        info_pred = {'num_tokens_unanswerable': [], 'num_tokens_answerable': []}
+
+        # According to threshold fraction convert
+        threshold = np.array(list(uncs))
+        # Force threshold at 0.5 to mimic evaluation set
+        threshold = np.quantile(threshold, 0.5)
+
+        # Now any uncertainty exceeding this threshold will have its answer set to nan
+        for k, unc in enumerate(uncs):
+            if unc > threshold:
+                info_pred['num_tokens_unanswerable'].append(all_lengths[k])
+            else:
+                info_pred['num_tokens_answerable'].append(all_lengths[k])
+
+        tot_num_unanswerable = len(info_pred['num_tokens_unanswerable'])
+        unanswerability_mask = [1]*len(info_pred['num_tokens_unanswerable']) + [0]*len(info_pred['num_tokens_answerable'])
+        all_tokens = info_pred['num_tokens_unanswerable'] + info_pred['num_tokens_answerable']
+        # Sort from shortest to longest length
+        all_tokens, unanswerability_mask = zip(*sorted(zip(all_tokens, unanswerability_mask)))
+        frac_items = np.linspace(0,1,len(all_tokens))
+        cum_frac_unanswerable = np.cumsum(unanswerability_mask) / tot_num_unanswerable
+        plt.plot(frac_items, cum_frac_unanswerable, label=unc_name)
+
+
+    plt.xlabel('Retention fraction by smallest')
+    plt.ylabel('Cumulative fraction of total unanswerable examples')
+    plt.legend()
+    plt.xlim([0,1])
+    plt.ylim([0,1])
     plt.savefig(args.save_dir + 'cum_plot.png')
-
-    # for unc_name, uncs in unc_predictions.items():
-
-    #     info_pred = {'num_tokens_unanswerable': [], 'num_tokens_answerable': []}
-
-    #     # According to threshold fraction convert
-    #     threshold = np.array(list(uncs))
-    #     # Force threshold at 0.5 to mimic evaluation set
-    #     threshold = np.quantile(threshold, 0.5)
-
-    #     # Now any uncertainty exceeding this threshold will have its answer set to nan
-    #     for k, unc in enumerate(uncs):
-    #         if unc > threshold:
-    #             info_pred['num_tokens_unanswerable'].append(all_lengths[k])
-    #         else:
-    #             info_pred['num_tokens_answerable'].append(all_lengths[k])
-
-    #     l_num_tokens = info_pred['num_tokens_unanswerable'] + info_pred['num_tokens_answerable']
-    #     l_type = ['Unanswerable'] * len(info_pred['num_tokens_unanswerable']) + ['Answerable'] * len(info_pred['num_tokens_answerable'])
-    #     df = pd.DataFrame(list(zip(l_num_tokens, l_type)), columns=['Length', 'Type'])
-    #     # sns.set_context("poster")
-    #     # sns.histplot(data=df, x="Length", hue="Type", multiple="stack")
-    #     # plt.savefig(args.save_dir + unc_name + '_lengths_pred.png')
-    #     # plt.clf()
-    #     sns.histplot(data=df, x="Length", hue="Type", multiple="fill")
-    #     plt.savefig(args.save_dir + unc_name + '_lengths_pred_frac.png')
-    #     plt.clf()
-
 
 if __name__ == '__main__':
     main(args)
