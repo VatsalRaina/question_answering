@@ -421,45 +421,51 @@ def main(args):
 
     if args.use_joint_thresholding and (args.use_unans_probs == 1 or args.use_unans_probs_implicit == 1):
 
-        # Copy the span predictions
-        unans_span_predictions = c.deepcopy(span_predictions)
+        for second_unc_name, second_uncs in unc_predictions:
 
-        # Get the main unanswerability scores
-        scores = unanswerability_probs if args.use_unans_probs == 1 else unans_preds
+            # Copy the span predictions
+            unans_span_predictions = c.deepcopy(span_predictions)
 
-        # Now threshold with the main metric
-        threshold = np.array(list(scores))
-        threshold = np.quantile(threshold, 1 - (args.threshold_frac - args.joint_threshold_frac))
+            # Get the main unanswerability scores
+            scores = unanswerability_probs if args.use_unans_probs == 1 else unans_preds
 
-        # Get secondary metric
-        secondary_scores = c.deepcopy(unc_predictions[args.joint_threshold_metric])
+            # Now threshold with the main metric
+            threshold = np.array(list(scores))
+            threshold = np.quantile(threshold, 1 - (args.threshold_frac - args.joint_threshold_frac))
 
-        # Now any uncertainty exceeding this threshold will have its answer set to nan
-        for count, (_, _) in enumerate(unans_span_predictions.items()):
+            # Get secondary metric
+            secondary_scores = c.deepcopy(second_uncs)
 
-            # Get the qid
-            qid = qids[count]
+            # Now any uncertainty exceeding this threshold will have its answer set to nan
+            for count, (_, _) in enumerate(unans_span_predictions.items()):
 
-            # Get the answer
-            answer = unans_span_predictions[qid]
+                # Get the qid
+                qid = qids[count]
 
-            # If the uncertainty exceeds the threshold then set the answer to ""
-            unans_span_predictions[qid] = "" if scores[count] > threshold else answer
+                # Get the answer
+                answer = unans_span_predictions[qid]
 
-            # Set thresholded items to negtive inf
-            secondary_scores[qid] = -float('inf')
+                # If the uncertainty exceeds the threshold then set the answer to ""
+                unans_span_predictions[qid] = "" if scores[count] > threshold else answer
 
-        # Now threshold with the main metric
-        threshold = np.array(list(secondary_scores.values()))
-        threshold = np.quantile(threshold, 1 - args.joint_threshold_frac)
+                # Set thresholded items to negtive inf
+                secondary_scores[qid] = -float('inf')
 
-        for qid, answer in unans_span_predictions.items():
+            # Now threshold with the main metric
+            threshold = np.array(list(secondary_scores.values()))
+            threshold = np.quantile(threshold, 1 - args.joint_threshold_frac)
 
-            # If the uncertainty exceeds the threshold then set the answer to ""
-            unc_span_predictions[qid] = "" if secondary_scores[qid] > threshold else answer
+            for qid, answer in unans_span_predictions.items():
 
-        with open(os.path.join(args.save_dir, args.joint_threshold_metric + '_joint_squad_v2_predictions.json'), 'w') as fp:
-            json.dump(unc_span_predictions, fp)
+                # If the uncertainty exceeds the threshold then set the answer to ""
+                unc_span_predictions[qid] = "" if secondary_scores[qid] > threshold else answer
+
+            mask = np.array(list(unc_span_predictions.values())) == ""
+            print("Joint", second_unc_name)
+            print("Joint Fraction unanswered: {}/{} = {:.2f}".format(mask.sum(), len(mask), mask.sum()/len(mask)))
+
+            with open(os.path.join(args.save_dir, second_unc_name + '_joint_squad_v2_predictions.json'), 'w') as fp:
+                json.dump(unc_span_predictions, fp)
 
 
 if __name__ == '__main__':
