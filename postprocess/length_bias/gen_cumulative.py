@@ -122,10 +122,10 @@ def main(args):
     tot_num_unanswerable = len(info['num_tokens_unanswerable'])
     unanswerability_mask = [1]*len(info['num_tokens_unanswerable']) + [0]*len(info['num_tokens_answerable'])
     all_tokens = info['num_tokens_unanswerable'] + info['num_tokens_answerable']
-    # Sort from shortest to longest length
+    # Sort from longest to shortest length
     all_tokens, unanswerability_mask = zip(*sorted(zip(all_tokens, unanswerability_mask)))
     frac_items = np.linspace(0,1,len(all_tokens))
-    cum_frac_unanswerable = np.cumsum(unanswerability_mask) / tot_num_unanswerable
+    cum_frac_unanswerable = np.cumsum(unanswerability_mask[::-1]) / tot_num_unanswerable
     plt.plot(frac_items, cum_frac_unanswerable, label='True')
     
     
@@ -155,11 +155,11 @@ def main(args):
         # Sort from shortest to longest length
         all_tokens, unanswerability_mask = zip(*sorted(zip(all_tokens, unanswerability_mask)))
         frac_items = np.linspace(0,1,len(all_tokens))
-        cum_frac_unanswerable = np.cumsum(unanswerability_mask) / tot_num_unanswerable
+        cum_frac_unanswerable = np.cumsum(unanswerability_mask[::-1]) / tot_num_unanswerable
         plt.plot(frac_items, cum_frac_unanswerable, label=unc_name)
 
 
-    plt.xlabel('Retention fraction by smallest')
+    plt.xlabel('Retention fraction by largest')
     plt.ylabel('Cumulative fraction of total unanswerable examples')
     plt.legend()
     plt.xlim([0,1])
