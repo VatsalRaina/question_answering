@@ -421,7 +421,7 @@ def main(args):
 
     if args.use_joint_thresholding and (args.use_unans_probs == 1 or args.use_unans_probs_implicit == 1):
 
-        for second_unc_name, second_uncs in unc_predictions:
+        for second_unc_name, second_uncs in unc_predictions.items():
 
             # Copy the span predictions
             unans_span_predictions = c.deepcopy(span_predictions)
