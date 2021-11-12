@@ -451,6 +451,8 @@ def main(args):
                 # Set thresholded items to negtive inf
                 secondary_scores[qid] = -float('inf')
 
+            import pdb; pdb.set_trace()
+
             # Now threshold with the main metric
             threshold = np.array(list(secondary_scores.values()))
             threshold = np.quantile(threshold, 1 - args.joint_threshold_frac)
