@@ -132,7 +132,7 @@ def main(args):
 
     for unc_name, uncs in unc_predictions.items():
 
-        if unc_name not in ['mutual_information']:
+        if unc_name not in ['unc_mutual_information', 'unc_mutual_information_len_norm', 'unc_mutual_information_log_len_norm']:
             continue
 
         info_pred = {'num_tokens_unanswerable': [], 'num_tokens_answerable': []}
