@@ -449,9 +449,8 @@ def main(args):
                 unans_span_predictions[qid] = "" if scores[count] > threshold else answer
 
                 # Set thresholded items to negtive inf
-                secondary_scores[qid] = -float('inf')
-
-            import pdb; pdb.set_trace()
+                if scores[count] > threshold:
+                    secondary_scores[qid] = -float('inf')
 
             # Now threshold with the main metric
             threshold = np.array(list(secondary_scores.values()))
