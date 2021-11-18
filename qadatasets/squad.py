@@ -1,5 +1,6 @@
 import torch
 from datasets import load_dataset
+import numpy as np
 
 from utils import _find_sub_list
 
@@ -32,8 +33,13 @@ def load_squad(args, tokenizer, device, split ='train'):
         all_data['end_positions_true'] = []
         all_data['answerable_true'] = []
 
+    # Permute data to make unanswerable examples
+    if args.permute==1:
+        np.random.seed(1)
+        qu_idxs = np.random.shuffle(np.arange(len(dataset)))
+
     # Process every example manually
-    for example in dataset:
+    for count, example in enumerate(dataset):
 
         # Get question and context
         question, context = example["question"], example["context"]
@@ -92,6 +98,28 @@ def load_squad(args, tokenizer, device, split ='train'):
             all_data['start_positions_true'].append(start_idx)
             all_data['end_positions_true'].append(end_idx)
             all_data['answerable_true'].append(start_idx != 0)
+
+        # Permute to make an unanswerable question
+        if args.permute==1:
+            context = example["context"]
+            other_context = dataset[qu_idxs[count]]["context"]
+            if context == other_context:
+                # The question should be unanswerable
+                continue
+            question = dataset[qu_idxs[count]]["question"]
+            concatenation = question + " [SEP] " + context
+            input_encodings_dict = tokenizer(concatenation, truncation=True, max_length=args.max_len, padding="max_length")
+            inp_ids = input_encodings_dict['input_ids']
+            inp_att_msk = input_encodings_dict['attention_mask']
+            tok_type_ids = [0 if i <= inp_ids.index(102) else 1 for i in range(len(inp_ids))]
+            all_data['input_ids'].append(inp_ids)
+            all_data['token_type_ids'].append(tok_type_ids)
+            all_data['attention_masks'].append(inp_att_msk)
+            if use_train:
+                start_idx, end_idx = 0, 0
+                all_data['start_positions_true'].append(start_idx)
+                all_data['end_positions_true'].append(end_idx)
+                all_data['answerable_true'].append(start_idx != 0)
 
     # Convert to long tensors on device
     for key, value in all_data.items():

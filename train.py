@@ -68,7 +68,6 @@ def main(args):
     # Set model optimizer
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
 
-    # Load SQuAD v1 dataset
     # TODO: Move this to a different location to make this script dataset agnostic
     print("===> Loading dataset")
     all_data = load_squad(

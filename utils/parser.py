@@ -28,6 +28,7 @@ def get_args():
                         help='Specify the type of QA model. Possible choices: ' + ' | '.join(model_names)
     )
     parser.add_argument('--dataset', '-d', type=str, default='squad', choices=["squad", "squad_v2"], help='Squad dataset')
+    parser.add_argument('--permute', type=int, default=0, help='Whether to permute dataset to create unanswerable examples')
 
     # Training parameters
     parser.add_argument('--log_every', type=int, default=40, help='Print a logging statement every n batches')
