@@ -35,8 +35,9 @@ def load_squad(args, tokenizer, device, split ='train'):
 
     # Permute data to make unanswerable examples
     if args.permute==1:
-        np.random.seed(1)
-        qu_idxs = np.random.shuffle(np.arange(len(dataset)))
+        # np.random.seed(1)
+        qu_idxs = np.arange(len(dataset))
+        np.random.shuffle(qu_idxs)
 
     # Process every example manually
     for count, example in enumerate(dataset):
