@@ -38,6 +38,7 @@ def load_squad(args, tokenizer, device, split ='train'):
         # np.random.seed(1)
         qu_idxs = np.arange(len(dataset))
         np.random.shuffle(qu_idxs)
+        qu_idxs = qu_idxs.tolist()
 
     # Process every example manually
     for count, example in enumerate(dataset):
