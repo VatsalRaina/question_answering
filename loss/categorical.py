@@ -19,7 +19,12 @@ def categorical_kl_divergence(log_probs, log_probs_target, temperature_scale_num
 
     # KL-divergence loss
     loss = torch.exp(log_probs_target) * (log_probs_target - log_probs)
-    loss = (loss * mask).sum(-1)
+
+    # Remove all elements corresponding to nans
+    loss[torch.isnan(loss)] = 0
+
+    # Get the total masked loss
+    loss = loss.sum(-1)
 
     if reduce: return loss.mean()
     return loss
