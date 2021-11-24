@@ -8,7 +8,6 @@ __all__ = [
 
 def categorical_kl_divergence(log_probs, log_probs_target, temperature_scale_num, mask = None, reduce = True):
 
-    import pdb; pdb.set_trace()
     # Mask probabilities
     log_probs = log_probs + mask.log()
     log_probs_target = log_probs_target + mask.log()
