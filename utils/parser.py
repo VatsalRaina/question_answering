@@ -50,6 +50,7 @@ def get_args():
     parser.add_argument('--dropout', type=float, default=0.1, help='Specify the dropout rate')
 
     # For models with a separate answerability module
+    parser.add_argument('--flatten_train_separation', type=int, default=0, help='Flattening the target for unanswerable examples')
     parser.add_argument('--answer_train_separation', type=int, default=0, help='Training the QA module on only answerable examples')
     parser.add_argument('--answer_alpha', type=float, default=1.0, help='Weight of the answerability loss')
 

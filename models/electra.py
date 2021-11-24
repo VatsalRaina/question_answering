@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from transformers import ElectraTokenizer
 from transformers import ElectraForQuestionAnswering as HFElectraForQuestionAnswering
 from transformers.file_utils import ModelOutput
+from loss import categorical_flat_kl_divergence
 
 from typing import Optional, Tuple
 
@@ -135,6 +136,23 @@ class ElectraForQuestionAnswering(HFElectraForQuestionAnswering):
         loss_fct = nn.CrossEntropyLoss(ignore_index = ignored_index, reduction = reduction)
         start_loss = loss_fct(start_logits, start_positions)
         end_loss = loss_fct(end_logits, end_positions)
+        total_loss = (start_loss + end_loss) / 2
+        return total_loss
+
+    @staticmethod
+    def forward_loss_flat(start_logits, end_logits, reduction = 'mean', context_mask = None):
+
+        if context_mask is not None:
+            context_mask = context_mask.float()
+            # This masking operation ensures that logits not corresponding to elements of interest
+            # have extremely small logits not affecting the probability mask of remaining elements
+            start_logits = start_logits + context_mask.log()
+            end_logits = end_logits + context_mask.log()
+
+        # Get the loss for both start and end
+        reduce = True if reduction == 'mean' else False
+        start_loss = categorical_flat_kl_divergence(start_logits, mask = context_mask, reduce = reduce)
+        end_loss = categorical_flat_kl_divergence(end_logits, mask = context_mask, reduce = reduce)
         total_loss = (start_loss + end_loss) / 2
         return total_loss
 
@@ -328,11 +346,31 @@ class ElectraForQuestionAnsweringCombo(ElectraForQuestionAnswering):
             )
 
             # Now mask out losses corresponding to unanswerable examples
-            if self.user_args.answer_train_separation:
+            if self.user_args.answer_train_separation and not self.user_args.flatten_train_separation:
                 assert answerable_labels is not None
 
                 total_loss = torch.masked_select(total_loss, answerable_labels.to(torch.bool))
                 total_loss = total_loss.sum()/sequence_output.size(0)
+
+            elif self.user_args.answer_train_separation and self.user_args.flatten_train_separation:
+                assert answerable_labels is not None
+
+                unanswerable_loss = self.forward_loss_flat(
+                    start_logits = start_logits,
+                    end_logits = end_logits,
+                    reduction = 'none',
+                    context_mask = context_mask,
+                )
+
+                # Choose the elements corresponding to answerable examples, maximising correct probability
+                choice_mask = answerable_labels.to(torch.bool)
+                answerable_loss = torch.masked_select(total_loss, choice_mask)
+
+                # Choose the elements corresponding to unanswerable examples, seeking a flat distribution
+                choice_mask = (1 - answerable_labels).to(torch.bool)
+                unanswerable_loss = torch.masked_select(unanswerable_loss, choice_mask)
+
+                total_loss = (answerable_loss + unanswerable_loss).sum() / sequence_output.size(0)
 
         combo_loss = None
         if answerable_labels is not None:
