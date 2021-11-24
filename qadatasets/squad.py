@@ -40,8 +40,12 @@ def load_squad(args, tokenizer, device, split ='train'):
         np.random.shuffle(qu_idxs)
         qu_idxs = qu_idxs.tolist()
 
+    count = 0
     # Process every example manually
     for count, example in enumerate(dataset):
+
+        if count > 100: break
+        count += 1
 
         # Get question and context
         question, context = example["question"], example["context"]
