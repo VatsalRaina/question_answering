@@ -367,10 +367,9 @@ class ElectraForQuestionAnsweringCombo(ElectraForQuestionAnswering):
                 answerable_loss = torch.masked_select(total_loss, choice_mask)
 
                 # Choose the elements corresponding to unanswerable examples, seeking a flat distribution
-                choice_mask = (1 - answerable_labels).to(torch.bool)
-                unanswerable_loss = torch.masked_select(unanswerable_loss, choice_mask)
+                unanswerable_loss = torch.masked_select(unanswerable_loss, ~choice_mask)
 
-                total_loss = (answerable_loss + unanswerable_loss).sum() / sequence_output.size(0)
+                total_loss = (answerable_loss.sum() + unanswerable_loss.sum()) / sequence_output.size(0)
 
         combo_loss = None
         if answerable_labels is not None:
