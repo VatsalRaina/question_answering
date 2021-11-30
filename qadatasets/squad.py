@@ -40,6 +40,16 @@ def load_squad(args, tokenizer, device, split ='train'):
         np.random.shuffle(qu_idxs)
         qu_idxs = qu_idxs.tolist()
 
+    if args.permute_directed==1:
+        # Collect the qu_idxs with the title for each Wikipedia article
+        title_to_qid = {}
+        for qu_id, item in enumerate(dataset):
+            title = item["title"]
+            if title in title_to_qid.keys():
+                title_to_qid[title].append(qu_id)
+            else:
+                title_to_qid[title] = [qu_id]
+
     # Process every example manually
     for count, example in enumerate(dataset):
 
