@@ -421,6 +421,10 @@ def main(args):
 
     if args.use_joint_thresholding and (args.use_unans_probs == 1 or args.use_unans_probs_implicit == 1):
 
+        print("\n\nProcessing joing thresholding with TH = {:.4f} and JTH = {:.4f}".format(
+            args.threshold_frac, args.joint_threshold_frac
+        ))
+
         for second_unc_name, second_uncs in unc_predictions.items():
 
             # Copy the span predictions
@@ -459,14 +463,14 @@ def main(args):
             for qid, answer in unans_span_predictions.items():
 
                 # If the uncertainty exceeds the threshold then set the answer to ""
-                unc_span_predictions[qid] = "" if secondary_scores[qid] > threshold else answer
+                unans_span_predictions[qid] = "" if secondary_scores[qid] > threshold else answer
 
-            mask = np.array(list(unc_span_predictions.values())) == ""
+            mask = np.array(list(unans_span_predictions.values())) == ""
             print("Joint", second_unc_name)
             print("Joint Fraction unanswered: {}/{} = {:.2f}".format(mask.sum(), len(mask), mask.sum()/len(mask)))
 
             with open(os.path.join(args.save_dir, second_unc_name + '_joint_squad_v2_predictions.json'), 'w') as fp:
-                json.dump(unc_span_predictions, fp)
+                json.dump(unans_span_predictions, fp)
 
 
 if __name__ == '__main__':
