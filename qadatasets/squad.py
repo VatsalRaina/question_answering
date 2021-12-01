@@ -1,6 +1,7 @@
 import torch
 from datasets import load_dataset
 import numpy as np
+import random
 
 from utils import _find_sub_list
 
@@ -36,19 +37,25 @@ def load_squad(args, tokenizer, device, split ='train'):
     # Permute data to make unanswerable examples
     if args.permute==1:
         # np.random.seed(1)
-        qu_idxs = np.arange(len(dataset))
-        np.random.shuffle(qu_idxs)
-        qu_idxs = qu_idxs.tolist()
+        perm_qu_idxs = np.arange(len(dataset))
+        np.random.shuffle(perm_qu_idxs)
+        perm_qu_idxs = perm_qu_idxs.tolist()
 
     if args.permute_directed==1:
         # Collect the qu_idxs with the title for each Wikipedia article
-        title_to_qid = {}
-        for qu_id, item in enumerate(dataset):
+        title_to_qidx = {}
+        qidx_to_title = []
+        for qu_idx, item in enumerate(dataset):
             title = item["title"]
-            if title in title_to_qid.keys():
-                title_to_qid[title].append(qu_id)
+            qidx_to_title.append(title)
+            if title in title_to_qidx.keys():
+                title_to_qidx[title].append(qu_idx)
             else:
-                title_to_qid[title] = [qu_id]
+                title_to_qidx[title] = [qu_idx]
+        perm_qu_idxs = []
+        for qu_idx, title in enumerate(qidx_to_title):
+            perm_qu_idxs.append(random.choice(title_to_qidx[title]))
+        args.permute=1
 
     # Process every example manually
     for count, example in enumerate(dataset):
@@ -114,11 +121,11 @@ def load_squad(args, tokenizer, device, split ='train'):
         # Permute to make an unanswerable question
         if args.permute==1:
             context = example["context"]
-            other_context = dataset[qu_idxs[count]]["context"]
+            other_context = dataset[perm_qu_idxs[count]]["context"]
             if context == other_context:
                 # The question should be unanswerable
                 continue
-            question = dataset[qu_idxs[count]]["question"]
+            question = dataset[perm_qu_idxs[count]]["question"]
             concatenation = question + " [SEP] " + context
             input_encodings_dict = tokenizer(concatenation, truncation=True, max_length=args.max_len, padding="max_length")
             inp_ids = input_encodings_dict['input_ids']
