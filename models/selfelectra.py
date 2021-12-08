@@ -347,7 +347,7 @@ def qa_electra_large_self(args, tokenizer_only = False, **kwargs):
         noise_b = args.noise_b,
     )
 
-    print("===> Using multiplicative noise with params ({:.2f}, {:.2f})".format(args.noise_a, args.noise_n))
+    print("===> Using multiplicative noise with params ({:.2f}, {:.2f})".format(args.noise_a, args.noise_b))
 
     return model, tokenizer
 
@@ -370,6 +370,6 @@ def qa_electra_large_combo_self(args, tokenizer_only = False, **kwargs):
         noise_b = args.noise_b,
     )
 
-    print("===> Using multiplicative noise with params ({:.2f}, {:.2f})".format(args.noise_a, args.noise_n))
+    print("===> Using multiplicative noise with params ({:.2f}, {:.2f})".format(args.noise_a, args.noise_b))
 
     return model, tokenizer
