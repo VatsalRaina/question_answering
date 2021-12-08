@@ -136,7 +136,7 @@ class DirichletEstimationLoss(object):
     def __init__(self):
         pass
 
-    def __call__(self, args, logits, noisy_logits, context_mask):
+    def __call__(self, args, logits, noisy_logits, context_mask, reduce = True):
 
         # Arguments for estimation and numerical stability
         temperature_scale_est = getattr(args, 'temperature_scale_est', 1.0)
@@ -165,7 +165,7 @@ class DirichletEstimationLoss(object):
             log_alphas_target = log_alphas_target,
             temperature_scale_num = temperature_scale_num,
             mask = context_mask,
-            reduce = True
+            reduce = reduce
         )
         return loss
 
