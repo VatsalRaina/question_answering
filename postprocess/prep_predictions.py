@@ -309,6 +309,11 @@ def main(args):
 
     for unc_name, uncs in unc_predictions.items():
 
+        if unc_name == 'unc_log_conf_expected':
+            print(uncs.mean())
+        if unc_name == 'unc_entropy_expected':
+            print(uncs.mean())
+
         # Get the uncertainty measures
         measures = np.array([unc_predictions[unc_name][qid] for qid in qids])
 

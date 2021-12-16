@@ -98,7 +98,7 @@ class EnsembleLogits(BaseClass):
         log_probs = sp.special.logsumexp(log_probs, axis=0) - np.log(n)
 
         # Entropy of average prediction
-        return  self.compute_log_confidence(log_probs)
+        return self.compute_log_confidence(log_probs)
 
     def compute_expected_logit_confidence(self, log_probs: np.ndarray):
         lconf = self.compute_logit_confidence(log_probs)
