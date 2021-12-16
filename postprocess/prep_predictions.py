@@ -162,37 +162,19 @@ def main(args):
         file = os.path.join(path, "pred_end_logits{}.npy".format(filename))
         logit_predictions['end'].append(np.load(file))
 
-    attention_uncertainties = {}
-    if n == 1:
-        for file in os.listdir(args.load_dirs[0]):
-            if file.startswith("pred_unc_"):
-
-                # Path to uncertainties
-                path = os.path.join(args.load_dirs[0], file)
-
-                # Which are called
-                name = file[5:-4]
-
-                # Store uncertainties
-                attention_uncertainties[name] = np.load(path)
-
     unanswerability_probs = []
     if args.use_unans_probs == 1:
         for path in args.load_dirs:
             file = os.path.join(path, "pred_unans_probs{}.npy".format("_" + args.dataset))
             unanswerability_probs.append(np.load(file))
-        # Ensemble
-        unanswerability_probs = np.mean(unanswerability_probs, axis=0)
 
+        # Ensemble answerability predictions
+        unanswerability_probs = np.mean(unanswerability_probs, axis=0)
 
     # Convert into numpy arrays
     # The logits will have dimension (num models, dataset size, maxlen)
     for key, item in logit_predictions.items():
         logit_predictions[key] = np.array(item)
-
-    # Ensemble start and end logits
-    logit_predictions['ensemble_start'] = sp.special.logsumexp(logit_predictions['start'], axis = 0) - np.log(n)
-    logit_predictions['ensemble_end'] = sp.special.logsumexp(logit_predictions['end'], axis=0) - np.log(n)
 
     # Loading dev data
     dev_data = load_dataset(args.dataset, split='validation')
@@ -223,12 +205,6 @@ def main(args):
         # Store qid for uncertainties later on
         qids.append(ex["id"])
 
-        # Process each example separately
-        start_logits = logit_predictions['ensemble_start'][i]
-        end_logits = logit_predictions['ensemble_end'][i]
-
-        unans_preds.append(start_logits[0])
-
         # Get the question, context and id
         question, context, qid = ex["question"], ex["context"], ex["id"]
 
@@ -246,6 +222,20 @@ def main(args):
         # Find occurrence of SEP tokens to isolate the context
         first_sep_idx = input_ids.index(102) + 1
         last_sep_idx  = input_ids[::-1].index(102) + 1
+
+        # Process each example separately
+        # Get the logits for all models in the ensemble (num models, seqlen)
+        all_start_logits = logit_predictions['start'][:, i, first_sep_idx:-last_sep_idx]
+        all_end_logits = logit_predictions['end'][:, i, first_sep_idx:-last_sep_idx]
+        all_start_logits = sp.special.log_softmax(all_start_logits, axis = 0)
+        all_end_logits = sp.special.log_softmax(all_end_logits, axis = 0)
+
+        # Ensemble start and end logits
+        start_logits = sp.special.logsumexp(all_start_logits, axis=0) - np.log(n)
+        end_logits = sp.special.logsumexp(all_end_logits, axis=0) - np.log(n)
+
+        # Get the unanswerablility cls predictions
+        unans_preds.append(start_logits[0])
 
         # From first occurrence of the SEP token to the last occurence of the SEP token
         context_start_logits = start_logits[first_sep_idx:-last_sep_idx]
@@ -321,22 +311,6 @@ def main(args):
             unc_span_predictions[qid] = "" if uncs[qid] > threshold else answer
 
         with open(os.path.join(args.save_dir, unc_name + '_squad_v2_predictions.json'), 'w') as fp:
-            json.dump(unc_span_predictions, fp)
-
-    for unc_name, uncs in attention_uncertainties.items():
-
-        # Copy the span predictions
-        unc_span_predictions = c.deepcopy(span_predictions)
-
-        # According to threshold fraction convert
-        threshold = np.quantile(uncs, 1 - args.threshold_frac)
-
-        # Now any uncertainty exceeding this threshold will have its answer set to nan
-        for i, (qid, answer) in enumerate(unc_span_predictions.items()):
-            # If the uncertainty exceeds the threshold then set the answer to ""
-            unc_span_predictions[qid] = "" if uncs[i] > threshold else answer
-
-        with open(os.path.join(args.save_dir, unc_name + '_attention_squad_v2_predictions.json'), 'w') as fp:
             json.dump(unc_span_predictions, fp)
 
     # Get detection performance for each uncertainty
