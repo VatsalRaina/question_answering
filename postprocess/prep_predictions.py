@@ -227,8 +227,8 @@ def main(args):
         # Get the logits for all models in the ensemble (num models, seqlen)
         all_start_logits = logit_predictions['start'][:, i, first_sep_idx:-last_sep_idx]
         all_end_logits = logit_predictions['end'][:, i, first_sep_idx:-last_sep_idx]
-        all_start_logits = sp.special.log_softmax(all_start_logits, axis = 0)
-        all_end_logits = sp.special.log_softmax(all_end_logits, axis = 0)
+        all_start_logits = sp.special.log_softmax(all_start_logits, axis = -1)
+        all_end_logits = sp.special.log_softmax(all_end_logits, axis = -1)
 
         # Ensemble start and end logits
         start_logits = sp.special.logsumexp(all_start_logits, axis=0) - np.log(n)
@@ -260,10 +260,6 @@ def main(args):
 
         # Check for unanswerability
         if args.dataset == "squad_v2":
-
-            # Get the logits for all models in the ensemble (num models, seqlen)
-            all_start_logits = logit_predictions['start'][:, i, first_sep_idx:-last_sep_idx]
-            all_end_logits = logit_predictions['end'][:, i, first_sep_idx:-last_sep_idx]
 
             # Initialise estimator and get the uncertainties
             estimator = load_uncertainty_class(args)
