@@ -312,11 +312,6 @@ def main(args):
         # Get the uncertainty measures
         measures = np.array([unc_predictions[unc_name][qid] for qid in qids])
 
-        if unc_name == 'unc_log_conf_expected':
-            print(measures.mean())
-        if unc_name == 'unc_entropy_expected':
-            print(measures.mean())
-
         # Get the aupr and best threshold performance
         aupr, [pr, re, th, f1] = ood_detection(domain_labels, measures, mode='PR', rev = False)
 
@@ -324,6 +319,10 @@ def main(args):
         auroc = ood_detection(domain_labels, measures, mode='ROC', rev = False)
 
         print("\n\nDetection of Unanswerability")
+        if unc_name == 'unc_log_conf_expected':
+            print(measures.mean())
+        if unc_name == 'unc_entropy_expected':
+            print(measures.mean())
         print(unc_name)
         print("Precision:", pr)
         print("Recall:   ", re)
