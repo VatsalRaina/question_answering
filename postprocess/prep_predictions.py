@@ -237,24 +237,19 @@ def main(args):
         # Get the unanswerablility cls predictions
         unans_preds.append(start_logits[0])
 
-        # From first occurrence of the SEP token to the last occurence of the SEP token
-        context_start_logits = start_logits[first_sep_idx:-last_sep_idx]
-        context_end_logits = end_logits[first_sep_idx:-last_sep_idx]
-        context_length = len(context_start_logits)
-
         # Tokenize contest and remove special tokens
         context_ids = tokenizer.encode(context)[1:-1]
 
         # Sort our start and end logits from largest to smallest, keeping track of the index
-        start_idx_and_logit = sorted(enumerate(context_start_logits), key=lambda x: x[1], reverse=True)
-        end_idx_and_logit = sorted(enumerate(context_end_logits), key=lambda x: x[1], reverse=True)
+        start_idx_and_logit = sorted(enumerate(start_logits), key=lambda x: x[1], reverse=True)
+        end_idx_and_logit = sorted(enumerate(end_logits), key=lambda x: x[1], reverse=True)
 
         # Select top 10 indexes for computational efficiency
         start_indices = [idx for idx, _ in start_idx_and_logit[:10]]
         end_indices = [idx for idx, _ in end_idx_and_logit[:10]]
 
         # Get best predictions
-        best = get_best_indices(start_indices, end_indices, context_start_logits, context_end_logits)
+        best = get_best_indices(start_indices, end_indices, start_logits, end_logits)
 
         # Extract answer from context
         answer = tokenizer.convert_tokens_to_string(
