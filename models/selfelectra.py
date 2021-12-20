@@ -284,15 +284,15 @@ class ElectraForQuestionAnsweringComboSelf(ElectraForQuestionAnsweringComboModif
                     context_mask = context_mask,
                 )
 
-                unanswerable_student_loss = self.forward_student_loss_flat(
-                    start_logits = start_logits,
-                    end_logits = end_logits,
-                    reduction='none',
-                    context_mask = context_mask,
-                )
+                # unanswerable_student_loss = self.forward_student_loss_flat(
+                #     start_logits = start_logits,
+                #     end_logits = end_logits,
+                #     reduction='none',
+                #     context_mask = context_mask,
+                # )
 
                 # Update total loss
-                unanswerable_loss += unanswerable_student_loss * self.user_args.self_ratio
+                # unanswerable_loss += unanswerable_student_loss * self.user_args.self_ratio
 
                 # Choose the elements corresponding to answerable examples, maximising correct probability
                 choice_mask = answerable_labels.to(torch.bool)
