@@ -31,6 +31,11 @@ from sklearn.metrics import auc
 args = get_args_prep().parse_args()
 
 
+def normalise(arr):
+    arr = np.array(arr)
+    return (arr - arr.mean())/arr.std()
+
+
 def strip_accents(text):
     text = text.replace("ö", "o").replace("ü", "u").replace("á", "a").replace("é", "e").replace("í", "i")
     text = text.replace("ó", "o").replace("ú", "u").replace("ñ", "n").replace("ç", "c").replace("â", "a")
@@ -388,6 +393,7 @@ def main(args):
         with open(os.path.join(args.save_dir, 'unans_implicit_squad_v2_predictions.json'), 'w') as fp:
             json.dump(unans_span_predictions, fp)
 
+    """
     if args.use_joint_thresholding and (args.use_unans_probs == 1 or args.use_unans_probs_implicit == 1):
 
         print("\n\nProcessing joing thresholding with TH = {:.4f} and JTH = {:.4f}".format(
@@ -441,6 +447,50 @@ def main(args):
 
                 # If the uncertainty exceeds the threshold then set the answer to ""
                 secondary_unans_span_predictions[qid] = "" if secondary_scores[qid] > secondary_threshold else answer
+
+            mask = np.array(list(secondary_unans_span_predictions.values())) == ""
+            print("Joint", second_unc_name)
+            print("Joint Fraction unanswered: {}/{} = {:.2f}".format(mask.sum(), len(mask), mask.sum()/len(mask)))
+
+            with open(os.path.join(args.save_dir, second_unc_name + '_joint_squad_v2_predictions.json'), 'w') as fp:
+                json.dump(secondary_unans_span_predictions, fp)
+    """
+
+    if args.use_joint_thresholding and (args.use_unans_probs == 1 or args.use_unans_probs_implicit == 1):
+
+        print("\n\nProcessing joing thresholding with TH = {:.4f} and JTH = {:.4f}".format(
+            args.threshold_frac, args.joint_threshold_frac
+        ))
+
+        # Copy the span predictions
+        primary_unans_span_predictions = c.deepcopy(span_predictions)
+
+        # Get the main unanswerability scores
+        scores = unanswerability_probs if args.use_unans_probs == 1 else unans_preds
+        scores = normalise(scores)
+
+        for second_unc_name, second_uncs in unc_predictions.items():
+
+            # Copy the span predictions
+            secondary_unans_span_predictions = c.deepcopy(primary_unans_span_predictions)
+
+            # Get secondary metric
+            secondary_scores = c.deepcopy(second_uncs)
+
+            # Normalise secondary scores
+            secondary_scores = np.array([secondary_scores[qid] for qid in qids])
+            secondary_scores = normalise(secondary_scores)
+
+            # Combine normalised scores
+            scores = scores + args.joint_threshold_frac * secondary_scores
+
+            # Now threshold the joint metric
+            secondary_threshold = np.quantile(secondary_scores, 1 - args.threshold_frac)
+
+            # Now any uncertainty exceeding this threshold will have its answer set to nan
+            for count, (qid, answer) in enumerate(secondary_unans_span_predictions.items()):
+                # If the uncertainty exceeds the threshold then set the answer to ""
+                secondary_unans_span_predictions[qid] = "" if secondary_threshold[count] > threshold else answer
 
             mask = np.array(list(secondary_unans_span_predictions.values())) == ""
             print("Joint", second_unc_name)
