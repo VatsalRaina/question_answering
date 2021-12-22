@@ -467,7 +467,7 @@ def main(args):
 
         # Get the main unanswerability scores
         scores = unanswerability_probs if args.use_unans_probs == 1 else unans_preds
-        scores = normalise(scores)
+        scores = normalise(scores.squeeze())
 
         for second_unc_name, second_uncs in unc_predictions.items():
 
@@ -482,15 +482,15 @@ def main(args):
             secondary_scores = normalise(secondary_scores)
 
             # Combine normalised scores
-            scores = scores + args.joint_threshold_frac * secondary_scores
+            joint_scores = scores + args.joint_threshold_frac * secondary_scores
 
             # Now threshold the joint metric
-            threshold = np.quantile(scores, 1 - args.threshold_frac)
+            threshold = np.quantile(joint_scores, 1 - args.threshold_frac)
 
             # Now any uncertainty exceeding this threshold will have its answer set to nan
             for count, (qid, answer) in enumerate(secondary_unans_span_predictions.items()):
                 # If the uncertainty exceeds the threshold then set the answer to ""
-                secondary_unans_span_predictions[qid] = "" if scores[count] > threshold else answer
+                secondary_unans_span_predictions[qid] = "" if joint_scores[count] > threshold else answer
 
             mask = np.array(list(secondary_unans_span_predictions.values())) == ""
             print("Joint", second_unc_name)
