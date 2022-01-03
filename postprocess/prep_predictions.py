@@ -264,7 +264,7 @@ def main(args):
         )
 
         # Check for unanswerability
-        if args.dataset == "squad_v2":
+        if args.dataset == "squad_v2" or (args.permute or args.permute_directed):
 
             # Initialise estimator and get the uncertainties
             estimator = load_uncertainty_class(args)
@@ -281,7 +281,7 @@ def main(args):
         # Hence, it is necessary to match the answer to an extract from the context
         span_predictions[qid] = clean_answer(answer, context)
 
-    if args.dataset != "squad_v2":
+    if args.dataset != "squad_v2" and (not(args.permute) and not(args.permute_directed) ):
         with open(os.path.join(args.save_dir, 'predictions.json'), 'w') as fp:
             json.dump(span_predictions, fp)
         return
