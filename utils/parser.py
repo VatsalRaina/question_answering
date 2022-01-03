@@ -88,6 +88,8 @@ def get_args_prep():
 
     # Dataset and paths
     parser.add_argument('--dataset', '-d', type=str, default='squad', choices=["squad", "squad_v2"], help='Squad dataset')
+    parser.add_argument('--permute', type=int, default=0, help='Whether dataset has been permuted to create unanswerable examples')
+    parser.add_argument('--permute_directed', type=int, default=0, help='Whether dataset has been permuted with directed shuffling to create unanswerable examples')
     parser.add_argument('--save_dir', type=str, help='Directory to which prepped files will be saved')
     parser.add_argument('--load_dirs', type=str, nargs='+', help='List of directories of saved start and end logits')
 

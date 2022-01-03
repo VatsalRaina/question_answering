@@ -46,6 +46,7 @@ def load_squad(args, tokenizer, device, split ='train'):
         # Collect the qu_idxs with the title for each Wikipedia article
         if split != 'train':
             np.random.seed(1)
+            random.seed(1)
         title_to_qidx = {}
         qidx_to_title = []
         for qu_idx, item in enumerate(dataset):

@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import collections
+import random
 
 dirname, filename = os.path.split(os.path.abspath(__file__))
 sys.path.append(dirname+'/..')
@@ -139,6 +140,60 @@ def find_best_f1(precision, recall, threshold):
     return precision[pos], recall[pos], threshold[pos], best
 
 
+def permute(dataset):
+    aug_dataset = dataset
+
+    # For reproducibility from test time
+    np.random.seed(1)
+    perm_qu_idxs = np.arange(len(dataset))
+    np.random.shuffle(perm_qu_idxs)
+    perm_qu_idxs = perm_qu_idxs.tolist()
+
+    for count, example in enumerate(dataset):
+        context = example["context"]
+        other_context = dataset[perm_qu_idxs[count]]["context"]
+        if context == other_context:
+            # The question should be unanswerable
+            continue
+        question = dataset[perm_qu_idxs[count]]["question"]
+
+        new_example = {"question": question, "context": context, "answers": {"text": []}}
+        aug_dataset.append(new_example)
+    return aug_dataset
+
+
+def permute_directed(dataset):
+    aug_dataset = dataset
+
+    # For reproducibility from test time
+    np.random.seed(1)
+    random.seed(1)
+    title_to_qidx = {}
+    qidx_to_title = []
+    for qu_idx, item in enumerate(dataset):
+        title = item["title"]
+        qidx_to_title.append(title)
+        if title in title_to_qidx.keys():
+            title_to_qidx[title].append(qu_idx)
+        else:
+            title_to_qidx[title] = [qu_idx]
+    perm_qu_idxs = []
+    for qu_idx, title in enumerate(qidx_to_title):
+        perm_qu_idxs.append(random.choice(title_to_qidx[title]))
+
+    for count, example in enumerate(dataset):
+        context = example["context"]
+        other_context = dataset[perm_qu_idxs[count]]["context"]
+        if context == other_context:
+            # The question should be unanswerable
+            continue
+        question = dataset[perm_qu_idxs[count]]["question"]
+
+        new_example = {"question": question, "context": context, "answers": {"text": []}}
+        aug_dataset.append(new_example)
+    return aug_dataset
+
+
 def main(args):
 
     # Store command for future reference
@@ -183,6 +238,11 @@ def main(args):
 
     # Loading dev data
     dev_data = load_dataset(args.dataset, split='validation')
+
+    if args.permute:
+        dev_data = permute(dev_data)
+    if args.permute_directed:
+        dev_data = permute_directed(dev_data)
 
     # TODO: This should be specified based on what model arch we are using, see test script
     tokenizer = ElectraTokenizer.from_pretrained('google/electra-large-discriminator', do_lower_case=True)
