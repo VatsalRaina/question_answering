@@ -36,13 +36,16 @@ def load_squad(args, tokenizer, device, split ='train'):
 
     # Permute data to make unanswerable examples
     if args.permute==1:
-        # np.random.seed(1)
+        if split != 'train':
+            np.random.seed(1)
         perm_qu_idxs = np.arange(len(dataset))
         np.random.shuffle(perm_qu_idxs)
         perm_qu_idxs = perm_qu_idxs.tolist()
 
     if args.permute_directed==1:
         # Collect the qu_idxs with the title for each Wikipedia article
+        if split != 'train':
+            np.random.seed(1)
         title_to_qidx = {}
         qidx_to_title = []
         for qu_idx, item in enumerate(dataset):
