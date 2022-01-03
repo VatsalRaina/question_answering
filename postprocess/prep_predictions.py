@@ -157,8 +157,9 @@ def permute(old_dataset):
             # The question should be unanswerable
             continue
         question = old_dataset[perm_qu_idxs[count]]["question"]
+        qid = old_dataset['id'] + '_aug'
 
-        new_example = {"question": question, "context": context, "answers": {"text": []}}
+        new_example = {"id": qid, "question": question, "context": context, "answers": {"text": []}}
         aug_dataset.append(new_example)
     return aug_dataset
 
@@ -190,8 +191,9 @@ def permute_directed(old_dataset):
             # The question should be unanswerable
             continue
         question = old_dataset[perm_qu_idxs[count]]["question"]
+        qid = old_dataset['id'] + '_aug'
 
-        new_example = {"question": question, "context": context, "answers": {"text": []}}
+        new_example = {"id": qid, "question": question, "context": context, "answers": {"text": []}}
         aug_dataset.append(new_example)
     return aug_dataset
 
