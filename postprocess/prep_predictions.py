@@ -141,7 +141,6 @@ def find_best_f1(precision, recall, threshold):
 
 
 def permute(old_dataset):
-    aug_dataset = old_dataset
 
     # For reproducibility from test time
     np.random.seed(1)
@@ -149,7 +148,9 @@ def permute(old_dataset):
     np.random.shuffle(perm_qu_idxs)
     perm_qu_idxs = perm_qu_idxs.tolist()
 
+    aug_dataset = []
     for count, example in enumerate(old_dataset):
+        aug_dataset.append(example)
         context = example["context"]
         other_context = old_dataset[perm_qu_idxs[count]]["context"]
         if context == other_context:
@@ -163,7 +164,6 @@ def permute(old_dataset):
 
 
 def permute_directed(old_dataset):
-    aug_dataset = old_dataset
 
     # For reproducibility from test time
     np.random.seed(1)
@@ -181,7 +181,9 @@ def permute_directed(old_dataset):
     for qu_idx, title in enumerate(qidx_to_title):
         perm_qu_idxs.append(random.choice(title_to_qidx[title]))
 
+    aug_dataset = []
     for count, example in enumerate(old_dataset):
+        aug_dataset.append(example)
         context = example["context"]
         other_context = old_dataset[perm_qu_idxs[count]]["context"]
         if context == other_context:
