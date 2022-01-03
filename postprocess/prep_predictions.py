@@ -140,37 +140,37 @@ def find_best_f1(precision, recall, threshold):
     return precision[pos], recall[pos], threshold[pos], best
 
 
-def permute(dataset):
-    aug_dataset = dataset
+def permute(old_dataset):
+    aug_dataset = old_dataset
 
     # For reproducibility from test time
     np.random.seed(1)
-    perm_qu_idxs = np.arange(len(dataset))
+    perm_qu_idxs = np.arange(len(old_dataset))
     np.random.shuffle(perm_qu_idxs)
     perm_qu_idxs = perm_qu_idxs.tolist()
 
-    for count, example in enumerate(dataset):
+    for count, example in enumerate(old_dataset):
         context = example["context"]
-        other_context = dataset[perm_qu_idxs[count]]["context"]
+        other_context = old_dataset[perm_qu_idxs[count]]["context"]
         if context == other_context:
             # The question should be unanswerable
             continue
-        question = dataset[perm_qu_idxs[count]]["question"]
+        question = old_dataset[perm_qu_idxs[count]]["question"]
 
         new_example = {"question": question, "context": context, "answers": {"text": []}}
         aug_dataset.append(new_example)
     return aug_dataset
 
 
-def permute_directed(dataset):
-    aug_dataset = dataset
+def permute_directed(old_dataset):
+    aug_dataset = old_dataset
 
     # For reproducibility from test time
     np.random.seed(1)
     random.seed(1)
     title_to_qidx = {}
     qidx_to_title = []
-    for qu_idx, item in enumerate(dataset):
+    for qu_idx, item in enumerate(old_dataset):
         title = item["title"]
         qidx_to_title.append(title)
         if title in title_to_qidx.keys():
@@ -181,13 +181,13 @@ def permute_directed(dataset):
     for qu_idx, title in enumerate(qidx_to_title):
         perm_qu_idxs.append(random.choice(title_to_qidx[title]))
 
-    for count, example in enumerate(dataset):
+    for count, example in enumerate(old_dataset):
         context = example["context"]
-        other_context = dataset[perm_qu_idxs[count]]["context"]
+        other_context = old_dataset[perm_qu_idxs[count]]["context"]
         if context == other_context:
             # The question should be unanswerable
             continue
-        question = dataset[perm_qu_idxs[count]]["question"]
+        question = old_dataset[perm_qu_idxs[count]]["question"]
 
         new_example = {"question": question, "context": context, "answers": {"text": []}}
         aug_dataset.append(new_example)
